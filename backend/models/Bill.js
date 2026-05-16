@@ -18,14 +18,25 @@ const billTestSchema = new mongoose.Schema({
 const billSchema = new mongoose.Schema({
   billNumber: { type: String, unique: true },
   clinicId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clinic', required: true },
+  billingType: { type: String, enum: ['individual', 'corporate'], default: 'individual' },
+  // Individual billing
   patient: {
-    name: { type: String, required: true },
+    name: { type: String, default: '' },
     age: { type: Number },
     gender: { type: String, enum: ['Male', 'Female', 'Other'] },
     phone: { type: String, default: '' },
     referredBy: { type: String, default: '' },
   },
+  // Corporate billing
+  companyName: { type: String, default: '' },
+  patients: [{
+    name: { type: String, required: true },
+    age: { type: Number },
+    gender: { type: String, enum: ['Male', 'Female', 'Other'] },
+    phone: { type: String, default: '' },
+  }],
   tests: [billTestSchema],
+  patientCount: { type: Number, default: 1 },
   subtotal: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
   gstRate: { type: Number, default: 18 },

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Printer, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Download, Printer, CheckCircle, Clock, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import { generatePDF } from '../utils/generatePDF';
@@ -57,6 +57,9 @@ export default function BillDetailPage() {
   const discount = bill.discount || 0;
   const discountAmt = discount > 0 ? (bill.subtotal * discount) / 100 : 0;
   const dateStr = formatDate(bill.createdAt);
+  const isCorporate = bill.billingType === 'corporate';
+  const patientCount = bill.patientCount || (isCorporate ? (bill.patients?.length || 1) : 1);
+  const perPersonSubtotal = isCorporate ? bill.subtotal / patientCount : bill.subtotal;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
@@ -96,7 +99,12 @@ export default function BillDetailPage() {
           </div>
           <div className="text-right flex-shrink-0">
             <p className="font-bold text-sm" style={{ color: clinicColor }}>Bill of Supply / Tax Invoice</p>
-            <div className="flex items-center gap-2 justify-end mt-1">
+            <div className="flex items-center gap-2 justify-end mt-1 flex-wrap">
+              {isCorporate && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
+                  <Building2 size={11} /> CORPORATE
+                </span>
+              )}
               {bill.status === 'paid' ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
                   <CheckCircle size={11} /> PAID
@@ -110,41 +118,86 @@ export default function BillDetailPage() {
           </div>
         </div>
 
-        {/* ── Patient + Bill Info ── */}
+        {/* ── Patient / Corporate Info ── */}
         <div className="mx-8 my-5 border border-slate-200 rounded-lg overflow-hidden text-sm">
           <div className="flex divide-x divide-slate-200 bg-slate-50">
-            {/* Left: patient info */}
-            <div className="flex-1 p-4 space-y-2.5">
-              {[
-                ['Name', bill.patient?.name || '—'],
-                ['Age / Gender', `${bill.patient?.age || '—'} Yrs / ${bill.patient?.gender || '—'}`],
-                ['Contact No', bill.patient?.phone || '—'],
-                ['Address', '—'],
-                ['UHID', '—'],
-                ['Home Collection', 'No'],
-              ].map(([label, value]) => (
-                <div key={label} className="flex gap-2">
-                  <span className="font-bold text-slate-700 whitespace-nowrap w-28 shrink-0">{label}:</span>
-                  <span className="text-slate-600">{value}</span>
+            {isCorporate ? (
+              <>
+                {/* Left: company + patient list */}
+                <div className="flex-1 p-4">
+                  <div className="flex gap-2 mb-2">
+                    <span className="font-bold text-slate-700 whitespace-nowrap w-28 shrink-0">Company:</span>
+                    <span className="text-slate-600 font-medium">{bill.companyName || '—'}</span>
+                  </div>
+                  <div className="flex gap-2 mb-3">
+                    <span className="font-bold text-slate-700 whitespace-nowrap w-28 shrink-0">Total Patients:</span>
+                    <span className="text-slate-600">{patientCount}</span>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {(bill.patients || []).map((p, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm">
+                        <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold flex-shrink-0">{i + 1}</span>
+                        <span className="font-medium text-slate-700">{p.name}</span>
+                        {p.age && <span className="text-slate-400">{p.age}Y</span>}
+                        {p.gender && <span className="text-slate-400">/ {p.gender[0]}</span>}
+                        {p.phone && <span className="text-slate-400 ml-auto text-xs">{p.phone}</span>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
-            {/* Right: bill info */}
-            <div className="flex-1 p-4 space-y-2.5">
-              {[
-                ['Bill #', bill.billNumber],
-                ['Visit Date', dateStr],
-                ['Referred By', bill.patient?.referredBy || 'Self'],
-                ['Visit No', '1'],
-                ['Center', clinic.name || '—'],
-                ['Center Ph.', clinic.phone || '—'],
-              ].map(([label, value]) => (
-                <div key={label} className="flex gap-2">
-                  <span className="font-bold text-slate-700 whitespace-nowrap w-28 shrink-0">{label}:</span>
-                  <span className="text-slate-600">{value}</span>
+                {/* Right: bill info */}
+                <div className="flex-1 p-4 space-y-2.5">
+                  {[
+                    ['Bill #', bill.billNumber],
+                    ['Date', dateStr],
+                    ['Per Patient', fmtRs(perPersonSubtotal)],
+                    ['Patients', String(patientCount)],
+                    ['Center', clinic.name || '—'],
+                    ['Center Ph.', clinic.phone || '—'],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex gap-2">
+                      <span className="font-bold text-slate-700 whitespace-nowrap w-28 shrink-0">{label}:</span>
+                      <span className="text-slate-600">{value}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <>
+                {/* Left: patient info */}
+                <div className="flex-1 p-4 space-y-2.5">
+                  {[
+                    ['Name', bill.patient?.name || '—'],
+                    ['Age / Gender', `${bill.patient?.age || '—'} Yrs / ${bill.patient?.gender || '—'}`],
+                    ['Contact No', bill.patient?.phone || '—'],
+                    ['Address', '—'],
+                    ['UHID', '—'],
+                    ['Home Collection', 'No'],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex gap-2">
+                      <span className="font-bold text-slate-700 whitespace-nowrap w-28 shrink-0">{label}:</span>
+                      <span className="text-slate-600">{value}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* Right: bill info */}
+                <div className="flex-1 p-4 space-y-2.5">
+                  {[
+                    ['Bill #', bill.billNumber],
+                    ['Visit Date', dateStr],
+                    ['Referred By', bill.patient?.referredBy || 'Self'],
+                    ['Visit No', '1'],
+                    ['Center', clinic.name || '—'],
+                    ['Center Ph.', clinic.phone || '—'],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex gap-2">
+                      <span className="font-bold text-slate-700 whitespace-nowrap w-28 shrink-0">{label}:</span>
+                      <span className="text-slate-600">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -191,9 +244,14 @@ export default function BillDetailPage() {
 
         {/* ── Bill Amount ── */}
         <div className="px-8 flex justify-end text-sm text-slate-600">
-          <div className="flex gap-12">
-            <span>Bill Amount:</span>
-            <span className="font-bold text-slate-800">{fmtRs(bill.subtotal)}</span>
+          <div className="text-right space-y-1">
+            {isCorporate && patientCount > 1 && (
+              <div className="text-xs text-slate-400">{fmtRs(perPersonSubtotal)} × {patientCount} patients</div>
+            )}
+            <div className="flex gap-12">
+              <span>Bill Amount:</span>
+              <span className="font-bold text-slate-800">{fmtRs(bill.subtotal)}</span>
+            </div>
           </div>
         </div>
 

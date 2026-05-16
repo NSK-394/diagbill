@@ -7,7 +7,8 @@ const fmtRs = (n) =>
 export default function InvoicePreview({ billNumber }) {
   const {
     selectedClinic, patient, selectedTests,
-    discount, subtotal, discountAmount, gstAmount, total, billDate,
+    discount, subtotal, perPersonSubtotal, discountAmount, gstAmount, total, billDate,
+    billingType, companyName, corporatePatients, patientCount,
   } = useBilling();
 
   const dateStr = billDate
@@ -47,42 +48,81 @@ export default function InvoicePreview({ billNumber }) {
         </div>
       </div>
 
-      {/* Patient + Bill info — two columns */}
+      {/* Patient / Corporate info — two columns */}
       <div className="mx-4 mt-3 mb-2 border border-slate-200 bg-slate-50 rounded overflow-hidden" style={{ fontSize: '8px' }}>
-        <div className="flex divide-x divide-slate-200">
-          {/* Left: patient info */}
-          <div className="flex-1 p-2.5 space-y-1.5">
-            {[
-              ['Name', patient?.name || '—'],
-              ['Age / Gender', patient?.name ? `${patient.age || '—'} Yrs / ${patient.gender || '—'}` : '—'],
-              ['Contact No', patient?.phone || '—'],
-              ['Address', '—'],
-              ['UHID', '—'],
-              ['Home Collection', 'No'],
-            ].map(([label, value]) => (
-              <div key={label} className="flex gap-1.5">
-                <span className="font-bold text-slate-700 whitespace-nowrap w-20 shrink-0">{label}:</span>
-                <span className="text-slate-600">{value}</span>
+        {billingType === 'corporate' ? (
+          <div className="flex divide-x divide-slate-200">
+            {/* Left: company + patient list */}
+            <div className="flex-1 p-2.5">
+              <div className="flex gap-1.5 mb-1.5">
+                <span className="font-bold text-slate-700 whitespace-nowrap w-20 shrink-0">Company:</span>
+                <span className="text-slate-600 font-medium">{companyName || '—'}</span>
               </div>
-            ))}
-          </div>
-          {/* Right: bill info */}
-          <div className="flex-1 p-2.5 space-y-1.5">
-            {[
-              ['Bill #', billNum],
-              ['Visit Date', dateStr],
-              ['Referred By', patient?.referredBy || 'Self'],
-              ['Visit No', '1'],
-              ['Center', selectedClinic?.name || '—'],
-              ['Center Ph.', selectedClinic?.phone || '—'],
-            ].map(([label, value]) => (
-              <div key={label} className="flex gap-1.5">
-                <span className="font-bold text-slate-700 whitespace-nowrap w-20 shrink-0">{label}:</span>
-                <span className="text-slate-600 truncate">{value}</span>
+              <div className="flex gap-1.5 mb-1">
+                <span className="font-bold text-slate-700 whitespace-nowrap w-20 shrink-0">Patients:</span>
+                <span className="text-slate-600">{corporatePatients.length}</span>
               </div>
-            ))}
+              <div className="space-y-0.5 ml-1 max-h-20 overflow-y-auto">
+                {corporatePatients.map((p, i) => (
+                  <div key={p._id} className="text-slate-500" style={{ fontSize: '7px' }}>
+                    {i + 1}. {p.name}{p.age ? `, ${p.age}Y` : ''}{p.gender ? ` / ${p.gender[0]}` : ''}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Right: bill info */}
+            <div className="flex-1 p-2.5 space-y-1.5">
+              {[
+                ['Bill #', billNum],
+                ['Date', dateStr],
+                ['Center', selectedClinic?.name || '—'],
+                ['Center Ph.', selectedClinic?.phone || '—'],
+                ['Per Patient', fmtRs(perPersonSubtotal)],
+                ['Patients', String(patientCount)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex gap-1.5">
+                  <span className="font-bold text-slate-700 whitespace-nowrap w-16 shrink-0">{label}:</span>
+                  <span className="text-slate-600 truncate">{value}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex divide-x divide-slate-200">
+            {/* Left: patient info */}
+            <div className="flex-1 p-2.5 space-y-1.5">
+              {[
+                ['Name', patient?.name || '—'],
+                ['Age / Gender', patient?.name ? `${patient.age || '—'} Yrs / ${patient.gender || '—'}` : '—'],
+                ['Contact No', patient?.phone || '—'],
+                ['Address', '—'],
+                ['UHID', '—'],
+                ['Home Collection', 'No'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex gap-1.5">
+                  <span className="font-bold text-slate-700 whitespace-nowrap w-20 shrink-0">{label}:</span>
+                  <span className="text-slate-600">{value}</span>
+                </div>
+              ))}
+            </div>
+            {/* Right: bill info */}
+            <div className="flex-1 p-2.5 space-y-1.5">
+              {[
+                ['Bill #', billNum],
+                ['Visit Date', dateStr],
+                ['Referred By', patient?.referredBy || 'Self'],
+                ['Visit No', '1'],
+                ['Center', selectedClinic?.name || '—'],
+                ['Center Ph.', selectedClinic?.phone || '—'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex gap-1.5">
+                  <span className="font-bold text-slate-700 whitespace-nowrap w-20 shrink-0">{label}:</span>
+                  <span className="text-slate-600 truncate">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Barcode centered */}
@@ -126,9 +166,14 @@ export default function InvoicePreview({ billNumber }) {
 
       {/* Bill Amount */}
       <div className="px-4 flex justify-end" style={{ fontSize: '8.5px' }}>
-        <div className="flex gap-8 text-slate-600">
-          <span>Bill Amount:</span>
-          <span className="font-bold text-slate-800">{fmtRs(subtotal)}</span>
+        <div className="text-right space-y-0.5">
+          {billingType === 'corporate' && patientCount > 1 && (
+            <div className="text-slate-400">{fmtRs(perPersonSubtotal)} × {patientCount} patients</div>
+          )}
+          <div className="flex gap-8 text-slate-600">
+            <span>Bill Amount:</span>
+            <span className="font-bold text-slate-800">{fmtRs(subtotal)}</span>
+          </div>
         </div>
       </div>
 

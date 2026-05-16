@@ -7,7 +7,10 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const INITIAL_STATE = {
   step: 1,
   selectedClinic: null,
+  billingType: 'individual',
   patient: { name: '', age: '', gender: 'Male', phone: '', referredBy: '' },
+  companyName: '',
+  corporatePatients: [],
   selectedTests: [],
   discount: 0,
   notes: '',
@@ -17,7 +20,7 @@ const INITIAL_STATE = {
 const loadFromSession = () => {
   try {
     const saved = sessionStorage.getItem('billing_draft');
-    return saved ? JSON.parse(saved) : INITIAL_STATE;
+    return saved ? { ...INITIAL_STATE, ...JSON.parse(saved) } : INITIAL_STATE;
   } catch {
     return INITIAL_STATE;
   }
@@ -32,15 +35,44 @@ export function BillingProvider({ children }) {
 
   const setStep = (step) => setState((s) => ({ ...s, step }));
   const setClinic = (clinic) => setState((s) => ({ ...s, selectedClinic: clinic, step: 2 }));
+  const setBillingType = (billingType) => setState((s) => ({ ...s, billingType }));
   const updatePatient = (patient) => setState((s) => ({ ...s, patient }));
+  const setCompanyName = (companyName) => setState((s) => ({ ...s, companyName }));
   const setDiscount = (discount) => setState((s) => ({ ...s, discount: Number(discount) }));
   const setNotes = (notes) => setState((s) => ({ ...s, notes }));
   const setBillDate = (billDate) => setState((s) => ({ ...s, billDate }));
 
+  // Corporate patient management
+  const addCorporatePatient = () => {
+    setState((s) => ({
+      ...s,
+      corporatePatients: [
+        ...s.corporatePatients,
+        { _id: Date.now().toString(), name: '', age: '', gender: 'Male', phone: '' },
+      ],
+    }));
+  };
+
+  const removeCorporatePatient = (id) => {
+    setState((s) => ({
+      ...s,
+      corporatePatients: s.corporatePatients.filter((p) => p._id !== id),
+    }));
+  };
+
+  const updateCorporatePatient = (id, field, value) => {
+    setState((s) => ({
+      ...s,
+      corporatePatients: s.corporatePatients.map((p) =>
+        p._id === id ? { ...p, [field]: value } : p
+      ),
+    }));
+  };
+
+  // Test management
   const addTest = (test) => {
     setState((s) => {
-      const exists = s.selectedTests.find((t) => t._id === test._id);
-      if (exists) return s;
+      if (s.selectedTests.find((t) => t._id === test._id)) return s;
       return { ...s, selectedTests: [...s.selectedTests, { ...test, qty: 1 }] };
     });
   };
@@ -58,23 +90,44 @@ export function BillingProvider({ children }) {
     }));
   };
 
+  const updatePrice = (testId, price) => {
+    setState((s) => ({
+      ...s,
+      selectedTests: s.selectedTests.map((t) =>
+        t._id === testId ? { ...t, price: Math.max(0, Number(price) || 0) } : t
+      ),
+    }));
+  };
+
   const resetBill = () => {
     sessionStorage.removeItem('billing_draft');
     setState(INITIAL_STATE);
   };
 
   const computed = useMemo(() => {
-    const subtotal = state.selectedTests.reduce((sum, t) => sum + t.price * t.qty, 0);
+    const patientCount =
+      state.billingType === 'corporate'
+        ? Math.max(1, state.corporatePatients.length)
+        : 1;
+    const perPersonSubtotal = state.selectedTests.reduce((sum, t) => sum + t.price * t.qty, 0);
+    const subtotal = perPersonSubtotal * patientCount;
     const discountAmount = (subtotal * state.discount) / 100;
     const afterDiscount = subtotal - discountAmount;
     const gstAmount = (afterDiscount * 18) / 100;
     const total = afterDiscount + gstAmount;
-    return { subtotal, discountAmount, afterDiscount, gstAmount, total };
-  }, [state.selectedTests, state.discount]);
+    return { subtotal, perPersonSubtotal, discountAmount, afterDiscount, gstAmount, total, patientCount };
+  }, [state.selectedTests, state.discount, state.billingType, state.corporatePatients]);
 
   return (
     <BillingContext.Provider
-      value={{ ...state, ...computed, setStep, setClinic, updatePatient, addTest, removeTest, updateQty, setDiscount, setNotes, setBillDate, resetBill }}
+      value={{
+        ...state, ...computed,
+        setStep, setClinic, setBillingType,
+        updatePatient, setCompanyName,
+        addCorporatePatient, removeCorporatePatient, updateCorporatePatient,
+        addTest, removeTest, updateQty, updatePrice,
+        setDiscount, setNotes, setBillDate, resetBill,
+      }}
     >
       {children}
     </BillingContext.Provider>

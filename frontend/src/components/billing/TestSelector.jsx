@@ -19,7 +19,7 @@ function useDebounce(value, delay) {
 }
 
 export default function TestSelector() {
-  const { selectedClinic, selectedTests, addTest, removeTest, updateQty, setStep, subtotal } = useBilling();
+  const { selectedClinic, selectedTests, addTest, removeTest, updateQty, updatePrice, setStep, subtotal, billingType, corporatePatients, patientCount } = useBilling();
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -118,26 +118,40 @@ export default function TestSelector() {
                   <p className="text-sm font-bold text-slate-800">{formatCurrency(test.price)}</p>
                 </div>
                 {selected ? (
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      onClick={() => updateQty(test._id, getQty(test._id) - 1)}
-                      className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors"
-                    >
-                      <Minus size={12} strokeWidth={3} />
-                    </button>
-                    <span className="w-5 text-center text-sm font-semibold text-blue-700">{getQty(test._id)}</span>
-                    <button
-                      onClick={() => updateQty(test._id, getQty(test._id) + 1)}
-                      className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors"
-                    >
-                      <Plus size={12} strokeWidth={3} />
-                    </button>
-                    <button
-                      onClick={() => removeTest(test._id)}
-                      className="w-7 h-7 rounded-full bg-red-100 text-red-500 flex items-center justify-center hover:bg-red-200 transition-colors ml-1"
-                    >
-                      <X size={12} strokeWidth={3} />
-                    </button>
+                  <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => updateQty(test._id, getQty(test._id) - 1)}
+                        className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors"
+                      >
+                        <Minus size={12} strokeWidth={3} />
+                      </button>
+                      <span className="w-5 text-center text-sm font-semibold text-blue-700">{getQty(test._id)}</span>
+                      <button
+                        onClick={() => updateQty(test._id, getQty(test._id) + 1)}
+                        className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors"
+                      >
+                        <Plus size={12} strokeWidth={3} />
+                      </button>
+                      <button
+                        onClick={() => removeTest(test._id)}
+                        className="w-7 h-7 rounded-full bg-red-100 text-red-500 flex items-center justify-center hover:bg-red-200 transition-colors ml-1"
+                      >
+                        <X size={12} strokeWidth={3} />
+                      </button>
+                    </div>
+                    {/* Editable price */}
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-slate-400">Rs.</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={selectedTests.find((t) => t._id === test._id)?.price ?? test.price}
+                        onChange={(e) => updatePrice(test._id, e.target.value)}
+                        className="w-20 text-xs text-right border border-blue-200 rounded px-1.5 py-0.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <button
@@ -160,7 +174,16 @@ export default function TestSelector() {
             <span className="text-sm font-medium text-blue-700">
               {selectedTests.length} test{selectedTests.length !== 1 ? 's' : ''} selected
             </span>
-            <span className="text-sm font-bold text-blue-800">{formatCurrency(subtotal)}</span>
+            <div className="text-right">
+              {billingType === 'corporate' && patientCount > 1 ? (
+                <>
+                  <p className="text-xs text-blue-600">{formatCurrency(subtotal / patientCount)} × {patientCount} patients</p>
+                  <p className="text-sm font-bold text-blue-800">{formatCurrency(subtotal)} total</p>
+                </>
+              ) : (
+                <span className="text-sm font-bold text-blue-800">{formatCurrency(subtotal)}</span>
+              )}
+            </div>
           </div>
         </div>
       )}

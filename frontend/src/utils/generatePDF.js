@@ -43,7 +43,10 @@ export async function generatePDF(bill) {
   const billNum = bill.billNumber || 'PREVIEW';
   const clinicColor = hexToRGB(clinic.color || '#2563EB');
 
+  const isCorporate = bill.billingType === 'corporate';
+  const patientCount = bill.patientCount || (isCorporate ? (bill.patients?.length || 1) : 1);
   const subtotal = bill.subtotal || tests.reduce((s, t) => s + t.price * (t.qty || 1), 0);
+  const perPersonSubtotal = isCorporate ? subtotal / patientCount : subtotal;
   const discount = bill.discount || 0;
   const discountAmt = bill.discountAmount || (subtotal * discount) / 100;
   const gstAmt = bill.gstAmount || ((subtotal - discountAmt) * 0.18);
@@ -106,19 +109,28 @@ export async function generatePDF(bill) {
   const midX = margin + contentW / 2;
   doc.line(midX, y, midX, y + boxH);
 
-  const leftRows = [
-    ['Name', patient.name || '—'],
-    ['Age / Gender', `${patient.age || '—'} Yrs / ${patient.gender || '—'}`],
-    ['Contact No', patient.phone || '—'],
-    ['Address', '—'],
-    ['UHID', '—'],
-    ['Home Collection', 'No'],
-  ];
+  const leftRows = isCorporate
+    ? [
+        ['Company', bill.companyName || '—'],
+        ['Patients', String(patientCount)],
+        ...((bill.patients || []).slice(0, 4).map((p, i) => [
+          `  ${i + 1}.`, `${p.name}${p.age ? `, ${p.age}Y` : ''}${p.gender ? ` / ${p.gender[0]}` : ''}`,
+        ])),
+        ...(patientCount > 4 ? [['', `+ ${patientCount - 4} more...`]] : []),
+      ]
+    : [
+        ['Name', patient.name || '—'],
+        ['Age / Gender', `${patient.age || '—'} Yrs / ${patient.gender || '—'}`],
+        ['Contact No', patient.phone || '—'],
+        ['Address', '—'],
+        ['UHID', '—'],
+        ['Home Collection', 'No'],
+      ];
+
   const rightRows = [
     ['Bill #', billNum],
     ['Visit Date', dateStr],
-    ['Referred By', patient.referredBy || 'Self'],
-    ['Visit No', '1'],
+    ...(!isCorporate ? [['Referred By', patient.referredBy || 'Self'], ['Visit No', '1']] : [['Per Patient', fmtRs(perPersonSubtotal)]]),
     ['Center', clinic.name || '—'],
     ['Center Ph.', clinic.phone || '—'],
   ];
@@ -210,6 +222,13 @@ export async function generatePDF(bill) {
   y = doc.lastAutoTable.finalY + 5;
 
   // ── BILL AMOUNT (right-aligned) ──────────────────────────
+  if (isCorporate && patientCount > 1) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`${fmtRs(perPersonSubtotal)} × ${patientCount} patients`, W - margin, y, { align: 'right' });
+    y += 4;
+  }
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);

@@ -49,9 +49,14 @@ exports.getBill = async (req, res) => {
 
 exports.createBill = async (req, res) => {
   try {
-    const { clinicId, patient, tests, discount = 0, gstRate = 18, notes = '', status = 'paid', billDate } = req.body;
+    const {
+      clinicId, patient, tests, discount = 0, gstRate = 18, notes = '', status = 'paid', billDate,
+      billingType = 'individual', companyName = '', patients = [],
+    } = req.body;
 
-    const subtotal = tests.reduce((sum, t) => sum + t.price * (t.qty || 1), 0);
+    const patientCount = billingType === 'corporate' ? Math.max(1, patients.length) : 1;
+    const perPersonSubtotal = tests.reduce((sum, t) => sum + t.price * (t.qty || 1), 0);
+    const subtotal = perPersonSubtotal * patientCount;
     const discountAmount = (subtotal * discount) / 100;
     const afterDiscount = subtotal - discountAmount;
     const gstAmount = (afterDiscount * gstRate) / 100;
@@ -59,8 +64,10 @@ exports.createBill = async (req, res) => {
 
     const bill = new Bill({
       clinicId,
-      patient,
+      billingType,
+      ...(billingType === 'individual' ? { patient } : { companyName, patients }),
       tests,
+      patientCount,
       subtotal,
       discount,
       gstRate,

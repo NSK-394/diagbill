@@ -13,7 +13,8 @@ const formatCurrency = (n) =>
 export default function BillSummary({ onBillCreated }) {
   const billing = useBilling();
   const { selectedClinic, patient, selectedTests, discount, setDiscount, setNotes, notes,
-    subtotal, discountAmount, gstAmount, total, setStep, resetBill, billDate } = billing;
+    subtotal, perPersonSubtotal, discountAmount, gstAmount, total, setStep, resetBill, billDate,
+    billingType, companyName, corporatePatients, patientCount } = billing;
   const [saving, setSaving] = useState(false);
   const [savedBill, setSavedBill] = useState(null);
   const navigate = useNavigate();
@@ -27,7 +28,11 @@ export default function BillSummary({ onBillCreated }) {
     try {
       const { data } = await api.post('/bills', {
         clinicId: selectedClinic._id,
-        patient,
+        billingType,
+        ...(billingType === 'individual'
+          ? { patient }
+          : { companyName, patients: corporatePatients.map(({ name, age, gender, phone }) => ({ name, age, gender, phone })) }
+        ),
         tests: selectedTests.map(({ _id, name, code, category, price, qty }) => ({
           testId: _id, name, code, category, price, qty,
         })),
@@ -90,10 +95,33 @@ export default function BillSummary({ onBillCreated }) {
         </motion.div>
       )}
 
+      {/* Corporate patient list */}
+      {billingType === 'corporate' && (
+        <div className="card mb-4 overflow-hidden">
+          <div className="px-4 py-3 bg-blue-50 border-b border-blue-100 flex items-center justify-between">
+            <span className="text-sm font-semibold text-blue-700">Company: {companyName}</span>
+            <span className="badge bg-blue-100 text-blue-700">{corporatePatients.length} patients</span>
+          </div>
+          <div className="p-3 space-y-1.5 max-h-36 overflow-y-auto">
+            {corporatePatients.map((p, i) => (
+              <div key={p._id} className="flex items-center gap-2 text-sm text-slate-600">
+                <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-xs flex items-center justify-center font-bold flex-shrink-0">{i + 1}</span>
+                <span className="font-medium text-slate-700">{p.name}</span>
+                {p.age && <span className="text-slate-400">{p.age}Y</span>}
+                {p.gender && <span className="text-slate-400">{p.gender[0]}</span>}
+                {p.phone && <span className="text-slate-400 ml-auto">{p.phone}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Bill Items Summary */}
       <div className="card mb-4 overflow-hidden">
         <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-700">Bill Summary</span>
+          <span className="text-sm font-semibold text-slate-700">
+            {billingType === 'corporate' ? 'Tests per Patient' : 'Bill Summary'}
+          </span>
           <span className="badge bg-blue-100 text-blue-700">{selectedTests.length} tests</span>
         </div>
         <div className="p-4 space-y-2">
@@ -106,6 +134,12 @@ export default function BillSummary({ onBillCreated }) {
               <span className="font-semibold text-slate-800">{formatCurrency(test.price * test.qty)}</span>
             </div>
           ))}
+          {billingType === 'corporate' && patientCount > 1 && (
+            <div className="flex items-center justify-between text-sm pt-2 border-t border-slate-100 text-slate-500">
+              <span>Per-patient subtotal × {patientCount} patients</span>
+              <span className="font-semibold text-slate-700">{formatCurrency(perPersonSubtotal)} × {patientCount}</span>
+            </div>
+          )}
         </div>
       </div>
 
