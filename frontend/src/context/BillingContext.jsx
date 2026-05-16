@@ -13,6 +13,7 @@ const INITIAL_STATE = {
   corporatePatients: [],
   selectedTests: [],
   discount: 0,
+  includeGST: true,
   notes: '',
   billDate: todayISO(),
 };
@@ -39,6 +40,7 @@ export function BillingProvider({ children }) {
   const updatePatient = (patient) => setState((s) => ({ ...s, patient }));
   const setCompanyName = (companyName) => setState((s) => ({ ...s, companyName }));
   const setDiscount = (discount) => setState((s) => ({ ...s, discount: Number(discount) }));
+  const setIncludeGST = (includeGST) => setState((s) => ({ ...s, includeGST }));
   const setNotes = (notes) => setState((s) => ({ ...s, notes }));
   const setBillDate = (billDate) => setState((s) => ({ ...s, billDate }));
 
@@ -113,10 +115,10 @@ export function BillingProvider({ children }) {
     const subtotal = perPersonSubtotal * patientCount;
     const discountAmount = (subtotal * state.discount) / 100;
     const afterDiscount = subtotal - discountAmount;
-    const gstAmount = (afterDiscount * 18) / 100;
+    const gstAmount = state.includeGST ? (afterDiscount * 18) / 100 : 0;
     const total = afterDiscount + gstAmount;
     return { subtotal, perPersonSubtotal, discountAmount, afterDiscount, gstAmount, total, patientCount };
-  }, [state.selectedTests, state.discount, state.billingType, state.corporatePatients]);
+  }, [state.selectedTests, state.discount, state.includeGST, state.billingType, state.corporatePatients]);
 
   return (
     <BillingContext.Provider
@@ -126,7 +128,7 @@ export function BillingProvider({ children }) {
         updatePatient, setCompanyName,
         addCorporatePatient, removeCorporatePatient, updateCorporatePatient,
         addTest, removeTest, updateQty, updatePrice,
-        setDiscount, setNotes, setBillDate, resetBill,
+        setDiscount, setIncludeGST, setNotes, setBillDate, resetBill,
       }}
     >
       {children}

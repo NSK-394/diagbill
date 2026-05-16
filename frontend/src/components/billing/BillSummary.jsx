@@ -16,6 +16,7 @@ export default function BillSummary({ onBillCreated }) {
     selectedClinic, patient, selectedTests, discount, setDiscount, setNotes, notes,
     subtotal, perPersonSubtotal, discountAmount, gstAmount, total, setStep, resetBill, billDate,
     billingType, companyName, corporatePatients, patientCount,
+    includeGST, setIncludeGST,
     updatePatient, setCompanyName,
   } = billing;
 
@@ -74,7 +75,7 @@ export default function BillSummary({ onBillCreated }) {
           testId: _id, name, code, category, price, qty,
         })),
         discount,
-        gstRate: 18,
+        gstRate: includeGST ? 18 : 0,
         notes,
         status: paymentStatus,
         billDate: billDate || new Date().toISOString().slice(0, 10),
@@ -281,7 +282,7 @@ export default function BillSummary({ onBillCreated }) {
         </div>
       </div>
 
-      {/* Discount + Notes */}
+      {/* Discount + GST + Notes */}
       <div className="space-y-3 mb-4">
         <div>
           <label className="label">Discount (%)</label>
@@ -298,6 +299,24 @@ export default function BillSummary({ onBillCreated }) {
             />
           </div>
         </div>
+        <label className="flex items-center gap-3 cursor-pointer select-none">
+          <div className="relative">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={includeGST}
+              onChange={(e) => setIncludeGST(e.target.checked)}
+            />
+            <div className="w-10 h-5 bg-slate-200 rounded-full peer-checked:bg-blue-600 transition-colors duration-200" />
+            <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-5" />
+          </div>
+          <div>
+            <span className="text-sm font-medium text-slate-700">Apply GST (18%)</span>
+            {includeGST && (
+              <span className="ml-2 text-xs text-slate-400">+ {formatCurrency(gstAmount)}</span>
+            )}
+          </div>
+        </label>
         <div>
           <label className="label">Notes (optional)</label>
           <textarea
@@ -348,7 +367,7 @@ export default function BillSummary({ onBillCreated }) {
         {[
           { label: 'Subtotal', value: formatCurrency(subtotal), cls: 'text-slate-600' },
           { label: `Discount (${discount}%)`, value: `- ${formatCurrency(discountAmount)}`, cls: 'text-green-600', hide: !discount },
-          { label: 'GST (18%)', value: formatCurrency(gstAmount), cls: 'text-slate-600' },
+          { label: 'GST (18%)', value: formatCurrency(gstAmount), cls: 'text-slate-600', hide: !includeGST },
         ].filter(r => !r.hide).map(row => (
           <div key={row.label} className={`flex justify-between text-sm ${row.cls}`}>
             <span>{row.label}</span>

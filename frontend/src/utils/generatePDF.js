@@ -52,7 +52,8 @@ export async function generatePDF(bill) {
   const perPersonSubtotal = isCorporate ? subtotal / patientCount : subtotal;
   const discount = bill.discount || 0;
   const discountAmt = bill.discountAmount || (subtotal * discount) / 100;
-  const gstAmt = bill.gstAmount || ((subtotal - discountAmt) * 0.18);
+  const includeGST = bill.gstRate !== 0 && (bill.gstAmount > 0 || bill.gstRate === undefined || bill.gstRate === null);
+  const gstAmt = bill.gstAmount || 0;
   const total = bill.total || (subtotal - discountAmt + gstAmt);
 
   const visitDate = new Date(bill.createdAt || Date.now());
@@ -240,10 +241,8 @@ export async function generatePDF(bill) {
   // Totals (right side)
   const totalsRows = [
     ['Bill Amount :', fmtNum(subtotal)],
-    ...(discount > 0 ? [`Discount (${discount}%) :`, `- ${fmtNum(discountAmt)}`] : []).length > 0
-      ? [[`Discount (${discount}%) :`, `- ${fmtNum(discountAmt)}`]]
-      : [],
-    ['GST @ 18% :', fmtNum(gstAmt)],
+    ...(discount > 0 ? [[`Discount (${discount}%) :`, `- ${fmtNum(discountAmt)}`]] : []),
+    ...(includeGST ? [['GST @ 18% :', fmtNum(gstAmt)]] : []),
     ['Net Bill Amount :', fmtNum(total)],
     ['Total Paid Amount :', fmtNum(total)],
   ];

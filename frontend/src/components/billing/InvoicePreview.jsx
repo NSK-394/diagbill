@@ -11,7 +11,7 @@ export default function InvoicePreview({ billNumber }) {
   const {
     selectedClinic, patient, selectedTests,
     discount, subtotal, perPersonSubtotal, discountAmount, gstAmount, total, billDate,
-    billingType, companyName, corporatePatients, patientCount,
+    billingType, companyName, corporatePatients, patientCount, includeGST,
   } = useBilling();
 
   const dateStr = billDate
@@ -172,11 +172,13 @@ export default function InvoicePreview({ billNumber }) {
                   </td>
                 </tr>
               )}
-              <tr>
-                <td colSpan={5} className="py-0.5 px-1 text-slate-500">
-                  GST @ 18%: {fmtRs(gstAmount)}
-                </td>
-              </tr>
+              {includeGST && (
+                <tr>
+                  <td colSpan={5} className="py-0.5 px-1 text-slate-500">
+                    GST @ 18%: {fmtRs(gstAmount)}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
