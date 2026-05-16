@@ -23,6 +23,8 @@ export default function BillHistoryPage() {
     refetch({ search, status });
   }, [search, status, refetch]);
 
+  const [togglingId, setTogglingId] = useState(null);
+
   const handleDownload = async (billId) => {
     try {
       const { data } = await api.get(`/bills/${billId}`);
@@ -30,6 +32,20 @@ export default function BillHistoryPage() {
       toast.success('PDF downloaded!');
     } catch {
       toast.error('Failed to download PDF');
+    }
+  };
+
+  const handleToggleStatus = async (bill) => {
+    const newStatus = bill.status === 'paid' ? 'pending' : 'paid';
+    setTogglingId(bill._id);
+    try {
+      await api.patch(`/bills/${bill._id}/status`, { status: newStatus });
+      toast.success(`Marked as ${newStatus}`);
+      refetch({ search, status });
+    } catch {
+      toast.error('Failed to update status');
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -109,8 +125,16 @@ export default function BillHistoryPage() {
                     </td>
                     <td className="px-4 py-3.5">
                       <div>
-                        <p className="text-sm font-medium text-slate-800">{bill.patient?.name}</p>
-                        <p className="text-xs text-slate-400">{bill.patient?.phone}</p>
+                        <p className="text-sm font-medium text-slate-800">
+                          {bill.billingType === 'corporate'
+                            ? (bill.companyName || 'Corporate')
+                            : (bill.patient?.name || '—')}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {bill.billingType === 'corporate'
+                            ? `${bill.patientCount || bill.patients?.length || 0} patients`
+                            : bill.patient?.phone}
+                        </p>
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
@@ -126,15 +150,28 @@ export default function BillHistoryPage() {
                       <span className="text-sm font-bold text-slate-800">{formatCurrency(bill.total)}</span>
                     </td>
                     <td className="px-4 py-3.5">
-                      {bill.status === 'paid' ? (
-                        <span className="inline-flex items-center gap-1 badge bg-green-100 text-green-700 whitespace-nowrap">
-                          <CheckCircle size={10} /> Paid
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 badge bg-yellow-100 text-yellow-700 whitespace-nowrap">
-                          <Clock size={10} /> Pending
-                        </span>
-                      )}
+                      <button
+                        onClick={() => handleToggleStatus(bill)}
+                        disabled={togglingId === bill._id}
+                        title="Click to toggle status"
+                        className={`inline-flex items-center gap-1 badge whitespace-nowrap transition-all hover:opacity-80 cursor-pointer disabled:opacity-50 ${
+                          bill.status === 'paid'
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                            : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                        }`}
+                      >
+                        {togglingId === bill._id ? (
+                          <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                        ) : bill.status === 'paid' ? (
+                          <CheckCircle size={10} />
+                        ) : (
+                          <Clock size={10} />
+                        )}
+                        {bill.status === 'paid' ? 'Paid' : 'Pending'}
+                      </button>
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
