@@ -127,7 +127,7 @@ export default function InvoicePreview({ billNumber }) {
 
       {/* Barcode centered */}
       <div className="flex justify-center py-2">
-        <BarcodeBlock value={billNum} height={36} width={1.5} fontSize={8} />
+        <BarcodeBlock value={billNum} height={28} width={1.1} fontSize={7} />
       </div>
 
       {/* Tests Table */}

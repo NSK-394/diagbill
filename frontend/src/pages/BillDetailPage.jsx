@@ -202,8 +202,8 @@ export default function BillDetailPage() {
         </div>
 
         {/* ── Barcode centered ── */}
-        <div className="flex justify-center py-4">
-          <BarcodeBlock value={bill.billNumber} height={55} width={2} fontSize={11} />
+        <div className="flex justify-center py-3">
+          <BarcodeBlock value={bill.billNumber} height={40} width={1.6} fontSize={10} />
         </div>
 
         {/* ── Tests Table ── */}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, Download, Printer, Plus, IndianRupee } from 'lucide-react';
+import { CheckCircle, Download, Printer, Plus, IndianRupee, Pencil, X, Clock, User, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useBilling } from '../../context/BillingContext';
 import api from '../../api/axios';
@@ -12,12 +12,30 @@ const formatCurrency = (n) =>
 
 export default function BillSummary({ onBillCreated }) {
   const billing = useBilling();
-  const { selectedClinic, patient, selectedTests, discount, setDiscount, setNotes, notes,
+  const {
+    selectedClinic, patient, selectedTests, discount, setDiscount, setNotes, notes,
     subtotal, perPersonSubtotal, discountAmount, gstAmount, total, setStep, resetBill, billDate,
-    billingType, companyName, corporatePatients, patientCount } = billing;
+    billingType, companyName, corporatePatients, patientCount,
+    updatePatient, setCompanyName,
+  } = billing;
+
   const [saving, setSaving] = useState(false);
   const [savedBill, setSavedBill] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState('paid');
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(
+    billingType === 'corporate' ? companyName : patient?.name || ''
+  );
   const navigate = useNavigate();
+
+  const saveName = () => {
+    if (billingType === 'corporate') {
+      setCompanyName(nameInput.trim() || companyName);
+    } else {
+      updatePatient({ ...patient, name: nameInput.trim() || patient.name });
+    }
+    setEditingName(false);
+  };
 
   const handleSave = async () => {
     if (selectedTests.length === 0) {
@@ -39,7 +57,7 @@ export default function BillSummary({ onBillCreated }) {
         discount,
         gstRate: 18,
         notes,
-        status: 'paid',
+        status: paymentStatus,
         billDate: billDate || new Date().toISOString().slice(0, 10),
       });
       setSavedBill(data);
@@ -55,8 +73,12 @@ export default function BillSummary({ onBillCreated }) {
   const handleDownloadPDF = async () => {
     const bill = savedBill || {
       billNumber: 'PREVIEW',
+      billingType,
       clinicId: selectedClinic,
       patient,
+      companyName,
+      patients: corporatePatients,
+      patientCount,
       tests: selectedTests,
       subtotal, discountAmount, discount, gstAmount, total,
       createdAt: billDate ? new Date(billDate + 'T00:00:00') : new Date(),
@@ -70,9 +92,9 @@ export default function BillSummary({ onBillCreated }) {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const displayName = billingType === 'corporate'
+    ? (companyName || 'Company')
+    : (patient?.name || 'Patient');
 
   return (
     <div>
@@ -95,11 +117,55 @@ export default function BillSummary({ onBillCreated }) {
         </motion.div>
       )}
 
+      {/* ── Name / Company with inline edit ── */}
+      <div className="card mb-4 px-4 py-3 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+          {billingType === 'corporate'
+            ? <Building2 size={15} className="text-blue-600" />
+            : <User size={15} className="text-blue-600" />}
+        </div>
+        {editingName ? (
+          <div className="flex flex-1 gap-2">
+            <input
+              autoFocus
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
+              className="input-field flex-1 py-1.5 text-sm"
+              placeholder={billingType === 'corporate' ? 'Company name' : 'Patient name'}
+            />
+            <button onClick={saveName} className="btn-primary py-1.5 px-3 text-sm">Save</button>
+            <button onClick={() => setEditingName(false)} className="btn-secondary py-1.5 px-2">
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-slate-400 uppercase tracking-wide">
+                {billingType === 'corporate' ? 'Company' : 'Patient'}
+              </p>
+              <p className="font-semibold text-slate-800 truncate">{displayName}</p>
+            </div>
+            {!savedBill && (
+              <button
+                onClick={() => { setNameInput(displayName); setEditingName(true); }}
+                className="text-slate-400 hover:text-blue-600 transition-colors flex-shrink-0"
+                title="Edit name"
+              >
+                <Pencil size={15} />
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
       {/* Corporate patient list */}
       {billingType === 'corporate' && (
         <div className="card mb-4 overflow-hidden">
           <div className="px-4 py-3 bg-blue-50 border-b border-blue-100 flex items-center justify-between">
-            <span className="text-sm font-semibold text-blue-700">Company: {companyName}</span>
+            <span className="text-sm font-semibold text-blue-700">Employees</span>
             <span className="badge bg-blue-100 text-blue-700">{corporatePatients.length} patients</span>
           </div>
           <div className="p-3 space-y-1.5 max-h-36 overflow-y-auto">
@@ -136,7 +202,7 @@ export default function BillSummary({ onBillCreated }) {
           ))}
           {billingType === 'corporate' && patientCount > 1 && (
             <div className="flex items-center justify-between text-sm pt-2 border-t border-slate-100 text-slate-500">
-              <span>Per-patient subtotal × {patientCount} patients</span>
+              <span>Per-patient × {patientCount} patients</span>
               <span className="font-semibold text-slate-700">{formatCurrency(perPersonSubtotal)} × {patientCount}</span>
             </div>
           )}
@@ -171,6 +237,39 @@ export default function BillSummary({ onBillCreated }) {
           />
         </div>
       </div>
+
+      {/* Payment Status toggle */}
+      {!savedBill && (
+        <div className="mb-4">
+          <label className="label">Payment Status</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPaymentStatus('paid')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                paymentStatus === 'paid'
+                  ? 'border-green-400 bg-green-50 text-green-700'
+                  : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+              }`}
+            >
+              <CheckCircle size={15} />
+              Paid
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentStatus('pending')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                paymentStatus === 'pending'
+                  ? 'border-yellow-400 bg-yellow-50 text-yellow-700'
+                  : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+              }`}
+            >
+              <Clock size={15} />
+              Pending
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Totals */}
       <div className="card p-4 mb-4 space-y-2">
@@ -218,7 +317,7 @@ export default function BillSummary({ onBillCreated }) {
             <button onClick={handleDownloadPDF} className="btn-primary justify-center">
               <Download size={15} /> Download PDF
             </button>
-            <button onClick={handlePrint} className="btn-secondary justify-center">
+            <button onClick={() => window.print()} className="btn-secondary justify-center">
               <Printer size={15} /> Print
             </button>
             <button
