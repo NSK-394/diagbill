@@ -7,10 +7,12 @@ const fmtRs = (n) =>
 export default function InvoicePreview({ billNumber }) {
   const {
     selectedClinic, patient, selectedTests,
-    discount, subtotal, discountAmount, gstAmount, total,
+    discount, subtotal, discountAmount, gstAmount, total, billDate,
   } = useBilling();
 
-  const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const dateStr = billDate
+    ? new Date(billDate + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const billNum = billNumber || 'PREVIEW';
   const clinicColor = selectedClinic?.color || '#2563EB';
 

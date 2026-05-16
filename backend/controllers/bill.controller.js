@@ -49,7 +49,7 @@ exports.getBill = async (req, res) => {
 
 exports.createBill = async (req, res) => {
   try {
-    const { clinicId, patient, tests, discount = 0, gstRate = 18, notes = '', status = 'paid' } = req.body;
+    const { clinicId, patient, tests, discount = 0, gstRate = 18, notes = '', status = 'paid', billDate } = req.body;
 
     const subtotal = tests.reduce((sum, t) => sum + t.price * (t.qty || 1), 0);
     const discountAmount = (subtotal * discount) / 100;
@@ -68,6 +68,7 @@ exports.createBill = async (req, res) => {
       total,
       notes,
       status,
+      ...(billDate && { createdAt: new Date(billDate) }),
     });
 
     await bill.save();

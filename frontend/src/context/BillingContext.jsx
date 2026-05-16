@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useMemo, useEffect } from 'react';
 
 const BillingContext = createContext(null);
 
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
 const INITIAL_STATE = {
   step: 1,
   selectedClinic: null,
@@ -9,6 +11,7 @@ const INITIAL_STATE = {
   selectedTests: [],
   discount: 0,
   notes: '',
+  billDate: todayISO(),
 };
 
 const loadFromSession = () => {
@@ -32,6 +35,7 @@ export function BillingProvider({ children }) {
   const updatePatient = (patient) => setState((s) => ({ ...s, patient }));
   const setDiscount = (discount) => setState((s) => ({ ...s, discount: Number(discount) }));
   const setNotes = (notes) => setState((s) => ({ ...s, notes }));
+  const setBillDate = (billDate) => setState((s) => ({ ...s, billDate }));
 
   const addTest = (test) => {
     setState((s) => {
@@ -70,7 +74,7 @@ export function BillingProvider({ children }) {
 
   return (
     <BillingContext.Provider
-      value={{ ...state, ...computed, setStep, setClinic, updatePatient, addTest, removeTest, updateQty, setDiscount, setNotes, resetBill }}
+      value={{ ...state, ...computed, setStep, setClinic, updatePatient, addTest, removeTest, updateQty, setDiscount, setNotes, setBillDate, resetBill }}
     >
       {children}
     </BillingContext.Provider>

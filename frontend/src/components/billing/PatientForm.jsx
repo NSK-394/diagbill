@@ -3,7 +3,7 @@ import { User, Calendar, Phone, Stethoscope, ArrowRight } from 'lucide-react';
 import { useBilling } from '../../context/BillingContext';
 
 export default function PatientForm() {
-  const { patient, updatePatient, setStep } = useBilling();
+  const { patient, billDate, updatePatient, setBillDate, setStep } = useBilling();
   const { register, handleSubmit, formState: { errors } } = useForm({ defaultValues: patient });
 
   const onSubmit = (data) => {
@@ -83,6 +83,20 @@ export default function PatientForm() {
                 {...register('referredBy')}
                 className="input-field pl-9"
                 placeholder="Dr. Name (optional)"
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="label">Bill Date</label>
+            <div className="relative">
+              <Calendar size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="date"
+                value={billDate}
+                onChange={(e) => setBillDate(e.target.value)}
+                max={new Date().toISOString().slice(0, 10)}
+                className="input-field pl-9"
               />
             </div>
           </div>

@@ -13,7 +13,7 @@ const formatCurrency = (n) =>
 export default function BillSummary({ onBillCreated }) {
   const billing = useBilling();
   const { selectedClinic, patient, selectedTests, discount, setDiscount, setNotes, notes,
-    subtotal, discountAmount, gstAmount, total, setStep, resetBill } = billing;
+    subtotal, discountAmount, gstAmount, total, setStep, resetBill, billDate } = billing;
   const [saving, setSaving] = useState(false);
   const [savedBill, setSavedBill] = useState(null);
   const navigate = useNavigate();
@@ -35,6 +35,7 @@ export default function BillSummary({ onBillCreated }) {
         gstRate: 18,
         notes,
         status: 'paid',
+        billDate: billDate || new Date().toISOString().slice(0, 10),
       });
       setSavedBill(data);
       if (onBillCreated) onBillCreated(data);
@@ -53,7 +54,7 @@ export default function BillSummary({ onBillCreated }) {
       patient,
       tests: selectedTests,
       subtotal, discountAmount, discount, gstAmount, total,
-      createdAt: new Date(),
+      createdAt: billDate ? new Date(billDate + 'T00:00:00') : new Date(),
     };
     try {
       await generatePDF(bill);
