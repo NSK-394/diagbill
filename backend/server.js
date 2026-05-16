@@ -14,6 +14,9 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 
 const app = express();
 
+// Trust Render/Vercel proxy so rate limiter uses real client IP
+app.set('trust proxy', 1);
+
 connectDB();
 
 // Security headers
