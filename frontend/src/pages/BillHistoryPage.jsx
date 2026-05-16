@@ -15,7 +15,7 @@ const formatDate = (d) =>
 
 export default function BillHistoryPage() {
   const navigate = useNavigate();
-  const { bills, total, loading, refetch } = useBills();
+  const { bills, total, loading, loadingMore, hasMore, refetch, loadMore } = useBills();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
 
@@ -90,6 +90,9 @@ export default function BillHistoryPage() {
 
       {/* Bills Table */}
       <div className="card overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 text-xs text-slate-400 font-medium">
+          Showing {bills.length} of {total} bills
+        </div>
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-8 text-center text-slate-400">Loading bills...</div>
@@ -198,6 +201,28 @@ export default function BillHistoryPage() {
           )}
         </div>
       </div>
+
+      {hasMore && (
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="btn-secondary px-8"
+          >
+            {loadingMore ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Loading...
+              </span>
+            ) : (
+              `Load More (${total - bills.length} remaining)`
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
