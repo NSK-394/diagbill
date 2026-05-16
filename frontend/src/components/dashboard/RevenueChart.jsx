@@ -2,15 +2,7 @@ import { motion } from 'framer-motion';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
-
-const MOCK_DATA = [
-  { month: 'Jan', revenue: 42000 },
-  { month: 'Feb', revenue: 58000 },
-  { month: 'Mar', revenue: 51000 },
-  { month: 'Apr', revenue: 74000 },
-  { month: 'May', revenue: 63000 },
-  { month: 'Jun', revenue: 89000 },
-];
+import { BarChart2 } from 'lucide-react';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -46,8 +38,8 @@ const CustomBar = (props) => {
 };
 
 export default function RevenueChart({ data }) {
-  const chartData = data?.length ? data : MOCK_DATA;
-  const max = Math.max(...chartData.map((d) => d.revenue));
+  const chartData = data?.length ? data : [];
+  const max = chartData.length ? Math.max(...chartData.map((d) => d.revenue)) : 0;
 
   return (
     <div className="card p-5">
@@ -62,6 +54,13 @@ export default function RevenueChart({ data }) {
         </div>
       </div>
 
+      {chartData.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-56 text-slate-300 gap-3">
+          <BarChart2 size={40} strokeWidth={1.2} />
+          <p className="text-sm text-slate-400 font-medium">No revenue data yet</p>
+          <p className="text-xs text-slate-300">Data will appear once bills are created</p>
+        </div>
+      ) : (
       <ResponsiveContainer width="100%" height={228}>
         <BarChart data={chartData} barSize={32} barGap={4}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -89,6 +88,7 @@ export default function RevenueChart({ data }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      )}
     </div>
   );
 }
