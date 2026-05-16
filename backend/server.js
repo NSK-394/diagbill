@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -14,15 +16,48 @@ const app = express();
 
 connectDB();
 
+// Security headers
+app.use(helmet());
+
+// CORS — allow Vercel frontend + local dev
+const allowedOrigins = [
+  'https://diagbill.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
 app.use(cors({
-  origin: true,
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// Rate limiting — strict on login, general on all API routes
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: { message: 'Too many login attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 200,
+  message: { message: 'Too many requests. Please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api', apiLimiter);
+app.use('/api/auth/login', loginLimiter);
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Diagnostic Billing API is running', timestamp: new Date() });
+  res.json({ status: 'OK', timestamp: new Date() });
 });
 
 app.use('/api/auth', authRoutes);
@@ -31,21 +66,9 @@ app.use('/api/tests', testRoutes);
 app.use('/api/bills', billRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Public scan endpoint — no auth, used by barcode scanner
-const Bill = require('./models/Bill');
-app.get('/api/public/scan/:billNumber', async (req, res) => {
-  try {
-    const bill = await Bill.findOne({ billNumber: req.params.billNumber }).populate('clinicId');
-    if (!bill) return res.status(404).json({ message: 'Bill not found' });
-    res.json(bill);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
