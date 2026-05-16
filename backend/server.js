@@ -31,6 +31,18 @@ app.use('/api/tests', testRoutes);
 app.use('/api/bills', billRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
+// Public scan endpoint — no auth, used by barcode scanner
+const Bill = require('./models/Bill');
+app.get('/api/public/scan/:billNumber', async (req, res) => {
+  try {
+    const bill = await Bill.findOne({ billNumber: req.params.billNumber }).populate('clinicId');
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    res.json(bill);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;

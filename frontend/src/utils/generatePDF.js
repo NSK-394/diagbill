@@ -163,19 +163,24 @@ export async function generatePDF(bill) {
   const patSectionH = Math.max(leftRows.length, rightRows.length) * lineH;
   y = startY + patSectionH + 2;
 
-  // ── BARCODE (left-aligned) ───────────────────────────────
+  // ── BARCODE (left-aligned, encodes scan URL) ─────────────
   try {
-    const safeVal = billNum.replace(/[^A-Z0-9\-\.\ \$\/\+\%]/gi, '').toUpperCase() || 'PREVIEW';
+    const scanUrl = `${window.location.origin}/scan/${billNum}`;
     const canvas = document.createElement('canvas');
-    JsBarcode(canvas, safeVal, {
-      format: 'CODE128', width: 1.4, height: 28,
-      displayValue: true, fontSize: 7, margin: 2,
+    JsBarcode(canvas, scanUrl, {
+      format: 'CODE128', width: 1.2, height: 28,
+      displayValue: false, margin: 2,
       background: '#ffffff', lineColor: '#0f172a',
     });
-    const bcW = 38;
+    const bcW = 48;
     const bcH = 10;
     doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, y, bcW, bcH);
-    y += bcH + 3;
+    // Bill number label below barcode
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...txtLight);
+    doc.text(billNum, margin, y + bcH + 2.5);
+    y += bcH + 6;
   } catch (_) {
     y += 3;
   }

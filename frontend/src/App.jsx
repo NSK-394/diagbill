@@ -10,6 +10,7 @@ import BillDetailPage from './pages/BillDetailPage';
 import TestsPage from './pages/TestsPage';
 import ClinicsPage from './pages/ClinicsPage';
 import NotFoundPage from './pages/NotFoundPage';
+import BillScanPage from './pages/BillScanPage';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -37,6 +38,9 @@ export default function App() {
         <Route path="/tests" element={<TestsPage />} />
         <Route path="/clinics" element={<ClinicsPage />} />
       </Route>
+
+      {/* Public — no login required, used by barcode scanner */}
+      <Route path="/scan/:billNumber" element={<BillScanPage />} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

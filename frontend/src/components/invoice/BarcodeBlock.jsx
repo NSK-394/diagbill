@@ -1,22 +1,25 @@
 import Barcode from 'react-barcode';
 
-export default function BarcodeBlock({ value, width = 1.5, height = 50, fontSize = 10 }) {
-  const safeValue = (value || 'PREVIEW').replace(/[^A-Z0-9\-\.\ \$\/\+\%]/gi, '').toUpperCase() || 'PREVIEW';
+export default function BarcodeBlock({ value, scanUrl, width = 1.5, height = 50, fontSize = 10 }) {
+  const displayText = (value || 'PREVIEW').replace(/[^A-Z0-9\-\.\ \$\/\+\%]/gi, '').toUpperCase() || 'PREVIEW';
+  // Encode the scan URL if provided, otherwise encode the bill number
+  const encoded = scanUrl || displayText;
+
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-start">
       <Barcode
-        value={safeValue}
+        value={encoded}
         width={width}
         height={height}
         fontSize={fontSize}
         margin={2}
-        displayValue={true}
-        font="monospace"
-        textAlign="center"
-        textPosition="bottom"
+        displayValue={false}
         background="#ffffff"
         lineColor="#1e293b"
       />
+      <p className="font-mono text-slate-500 mt-0.5" style={{ fontSize: `${Math.max(fontSize - 1, 6)}px` }}>
+        {displayText}
+      </p>
     </div>
   );
 }
