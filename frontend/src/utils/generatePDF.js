@@ -5,6 +5,9 @@ import JsBarcode from 'jsbarcode';
 const fmtRs = (n) =>
   `Rs. ${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const fmtNum = (n) =>
+  Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 function hexToRGB(hex) {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return r ? [parseInt(r[1], 16), parseInt(r[2], 16), parseInt(r[3], 16)] : [37, 99, 235];
@@ -33,9 +36,9 @@ function toWords(amount) {
 export async function generatePDF(bill) {
   const doc = new jsPDF('p', 'mm', 'a4');
   const W = 210;
-  const margin = 14;
+  const margin = 12;
   const contentW = W - margin * 2;
-  let y = 12;
+  let y = 8;
 
   const clinic = bill.clinicId || {};
   const patient = bill.patient || {};
@@ -52,75 +55,70 @@ export async function generatePDF(bill) {
   const gstAmt = bill.gstAmount || ((subtotal - discountAmt) * 0.18);
   const total = bill.total || (subtotal - discountAmt + gstAmt);
 
-  const dateStr = new Date(bill.createdAt || Date.now()).toLocaleDateString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  });
+  const visitDate = new Date(bill.createdAt || Date.now());
+  const dateStr = visitDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const dateShort = visitDate.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  // ── HEADER ──────────────────────────────────────────────
-  // Thin colored top bar
-  doc.setFillColor(...clinicColor);
-  doc.rect(0, 0, W, 8, 'F');
+  const txtDark = [15, 23, 42];
+  const txtMid = [51, 65, 85];
+  const txtLight = [100, 116, 139];
+  const lineColor = [180, 190, 210];
 
-  y = 14;
-
-  // Clinic name + details (left)
+  // ── CLINIC HEADER ────────────────────────────────────────
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(13);
+  doc.setTextColor(...clinicColor);
   doc.text(clinic.name || 'Diagnostic Center', margin, y);
 
-  // "Bill of Supply / Tax Invoice" (right)
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...clinicColor);
-  doc.text('Bill of Supply / Tax Invoice', W - margin, y, { align: 'right' });
-
-  y += 5;
+  y += 4.5;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.setTextColor(71, 85, 105);
+  doc.setTextColor(...txtMid);
   if (clinic.address) {
     doc.text(clinic.address, margin, y);
-    y += 4;
+    y += 3.5;
   }
   const contactLine = [
     clinic.phone && `Ph: ${clinic.phone}`,
     clinic.gst && `GST: ${clinic.gst}`,
-  ].filter(Boolean).join('   ');
+  ].filter(Boolean).join('     ');
   if (contactLine) {
     doc.text(contactLine, margin, y);
-    y += 4;
+    y += 3.5;
   }
 
-  // Divider
-  doc.setDrawColor(203, 213, 225);
-  doc.setLineWidth(0.4);
-  doc.line(margin, y + 1, W - margin, y + 1);
-  y += 6;
+  // ── TITLE ────────────────────────────────────────────────
+  y += 1;
+  doc.setDrawColor(...lineColor);
+  doc.setLineWidth(0.6);
+  doc.line(margin, y, W - margin, y);
+  y += 4;
 
-  // ── PATIENT + BILL INFO (two-column table) ──────────────
-  const boxH = 40;
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(...txtDark);
+  doc.text('Bill of Supply / Tax Invoice', W / 2, y, { align: 'center' });
+  y += 3.5;
+
   doc.setLineWidth(0.3);
-  doc.roundedRect(margin, y, contentW, boxH, 2, 2, 'FD');
+  doc.setDrawColor(...lineColor);
+  doc.line(margin, y, W - margin, y);
+  y += 5;
 
-  // Vertical divider in box
-  const midX = margin + contentW / 2;
-  doc.line(midX, y, midX, y + boxH);
+  // ── PATIENT INFO (two-column, no box) ────────────────────
+  const midX = W / 2 + 2;
+  const lblW = 24;
+  const lineH = 5;
 
   const leftRows = isCorporate
     ? [
         ['Company', bill.companyName || '—'],
         ['Patients', String(patientCount)],
-        ...((bill.patients || []).slice(0, 4).map((p, i) => [
-          `  ${i + 1}.`, `${p.name}${p.age ? `, ${p.age}Y` : ''}${p.gender ? ` / ${p.gender[0]}` : ''}`,
-        ])),
-        ...(patientCount > 4 ? [['', `+ ${patientCount - 4} more...`]] : []),
+        ...((bill.patients || []).slice(0, 5).map((p, i) => [`  ${i + 1}.`, p.name + (p.age ? `, ${p.age}Y` : '')])),
       ]
     : [
         ['Name', patient.name || '—'],
-        ['Age / Gender', `${patient.age || '—'} Yrs / ${patient.gender || '—'}`],
+        ['Age/Gender', `${patient.age || '—'} / ${patient.gender || '—'}`],
         ['Contact No', patient.phone || '—'],
         ['Address', '—'],
         ['UHID', '—'],
@@ -128,232 +126,237 @@ export async function generatePDF(bill) {
       ];
 
   const rightRows = [
-    ['Bill #', billNum],
-    ['Visit Date', dateStr],
-    ...(!isCorporate ? [['Referred By', patient.referredBy || 'Self'], ['Visit No', '1']] : [['Per Patient', fmtRs(perPersonSubtotal)]]),
+    ['Bill', billNum],
+    ['Visit/Reg Date', dateStr],
+    ...(!isCorporate ? [['Refered By', patient.referredBy || 'Self']] : [['Per Patient', fmtRs(perPersonSubtotal)]]),
+    ['Visit No', '1'],
     ['Center', clinic.name || '—'],
-    ['Center Ph.', clinic.phone || '—'],
+    ['Center Ph. No', clinic.phone || '—'],
+    ['Center Address', clinic.address || '—'],
   ];
 
-  const rowH = 6;
-  const startY = y + 5;
-  const labelW = 26;
+  const startY = y;
 
   leftRows.forEach(([label, value], i) => {
-    const ry = startY + i * rowH;
+    const ry = startY + i * lineH;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.8);
-    doc.setTextColor(51, 65, 85);
-    doc.text(`${label}:`, margin + 3, ry);
+    doc.setFontSize(7.5);
+    doc.setTextColor(...txtDark);
+    doc.text(label, margin, ry);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(30, 41, 59);
-    doc.text(String(value), margin + 3 + labelW, ry, { maxWidth: midX - margin - 3 - labelW - 2 });
+    doc.setTextColor(...txtMid);
+    doc.text(String(value || '—'), margin + lblW, ry, { maxWidth: midX - margin - lblW - 4 });
   });
 
   rightRows.forEach(([label, value], i) => {
-    const ry = startY + i * rowH;
+    const ry = startY + i * lineH;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.8);
-    doc.setTextColor(51, 65, 85);
-    doc.text(`${label}:`, midX + 3, ry);
+    doc.setFontSize(7.5);
+    doc.setTextColor(...txtDark);
+    doc.text(label, midX, ry);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(30, 41, 59);
-    doc.text(String(value), midX + 3 + labelW, ry, { maxWidth: W - margin - midX - 3 - labelW - 2 });
+    doc.setTextColor(...txtMid);
+    const lines = doc.splitTextToSize(String(value || '—'), W - margin - midX - lblW - 2);
+    doc.text(lines, midX + lblW, ry);
   });
 
-  y += boxH + 5;
+  const patSectionH = Math.max(leftRows.length, rightRows.length) * lineH;
+  y = startY + patSectionH + 2;
 
-  // ── BARCODE ─────────────────────────────────────────────
+  // ── BARCODE (left-aligned) ───────────────────────────────
   try {
     const safeVal = billNum.replace(/[^A-Z0-9\-\.\ \$\/\+\%]/gi, '').toUpperCase() || 'PREVIEW';
     const canvas = document.createElement('canvas');
     JsBarcode(canvas, safeVal, {
-      format: 'CODE128', width: 2, height: 40,
-      displayValue: true, fontSize: 9, margin: 4,
+      format: 'CODE128', width: 2, height: 36,
+      displayValue: true, fontSize: 8, margin: 3,
       background: '#ffffff', lineColor: '#0f172a',
     });
-    const bcW = 55;
-    const bcH = 16;
-    const bcX = (W - bcW) / 2;
-    doc.addImage(canvas.toDataURL('image/png'), 'PNG', bcX, y, bcW, bcH);
-    y += bcH + 5;
+    const bcW = 52;
+    const bcH = 14;
+    doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, y, bcW, bcH);
+    y += bcH + 3;
   } catch (_) {
-    y += 5;
+    y += 3;
   }
+
+  // Divider
+  doc.setDrawColor(...lineColor);
+  doc.setLineWidth(0.6);
+  doc.line(margin, y, W - margin, y);
+  y += 3;
 
   // ── TESTS TABLE ─────────────────────────────────────────
   autoTable(doc, {
     startY: y,
     margin: { left: margin, right: margin },
-    head: [['#', 'Service Code', 'Service Name', 'Reporting Date', 'SAC Code', 'Rate', 'Total']],
+    head: [['#', 'Service Code', 'Service Name', 'Reporting Date', 'SAC\nCode', 'Rate', 'Total']],
     body: tests.map((t, i) => [
       i + 1,
       t.code || '—',
       t.name,
       dateStr,
       '999316',
-      fmtRs(t.price),
-      fmtRs(t.price * (t.qty || 1)),
+      fmtNum(t.price),
+      fmtNum(t.price * (t.qty || 1)),
     ]),
     headStyles: {
-      fillColor: clinicColor,
-      textColor: [255, 255, 255],
+      fillColor: [255, 255, 255],
+      textColor: txtDark,
       fontSize: 7.5,
       fontStyle: 'bold',
-      cellPadding: 2.5,
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
+      lineColor: lineColor,
+      lineWidth: 0.3,
     },
     bodyStyles: {
-      fontSize: 7,
-      cellPadding: 2.5,
-      textColor: [15, 23, 42],
+      fontSize: 7.5,
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
+      textColor: txtMid,
+      lineColor: lineColor,
+      lineWidth: 0.2,
     },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
+    alternateRowStyles: { fillColor: [255, 255, 255] },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 8 },
-      1: { cellWidth: 22 },
+      0: { halign: 'center', cellWidth: 7 },
+      1: { cellWidth: 20 },
       2: { cellWidth: 'auto' },
       3: { cellWidth: 26 },
-      4: { halign: 'center', cellWidth: 18 },
-      5: { halign: 'right', cellWidth: 22 },
-      6: { halign: 'right', cellWidth: 22 },
+      4: { halign: 'center', cellWidth: 15 },
+      5: { halign: 'right', cellWidth: 20 },
+      6: { halign: 'right', cellWidth: 20 },
     },
+    tableLineColor: lineColor,
+    tableLineWidth: 0.3,
   });
 
-  y = doc.lastAutoTable.finalY + 5;
+  y = doc.lastAutoTable.finalY + 3;
 
-  // ── BILL AMOUNT (right-aligned) ──────────────────────────
-  if (isCorporate && patientCount > 1) {
-    doc.setFont('helvetica', 'normal');
+  // ── SETTLEMENT (left) + TOTALS (right) ──────────────────
+  const settleW = contentW * 0.56;
+  const totalsX = margin + settleW + 4;
+  const totalsW = contentW - settleW - 4;
+
+  // Totals (right side)
+  const totalsRows = [
+    ['Bill Amount :', fmtNum(subtotal)],
+    ...(discount > 0 ? [`Discount (${discount}%) :`, `- ${fmtNum(discountAmt)}`] : []).length > 0
+      ? [[`Discount (${discount}%) :`, `- ${fmtNum(discountAmt)}`]]
+      : [],
+    ['GST @ 18% :', fmtNum(gstAmt)],
+    ['Net Bill Amount :', fmtNum(total)],
+    ['Total Paid Amount :', fmtNum(total)],
+  ];
+
+  const totY = y;
+  totalsRows.forEach(([label, value], i) => {
+    const ry = totY + i * 5;
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`${fmtRs(perPersonSubtotal)} × ${patientCount} patients`, W - margin, y, { align: 'right' });
-    y += 4;
-  }
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(71, 85, 105);
-  doc.text('Bill Amount:', W - margin - 55, y);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(15, 23, 42);
-  doc.text(fmtRs(subtotal), W - margin, y, { align: 'right' });
-  y += 5;
-
-  // ── SETTLEMENT SECTION ──────────────────────────────────
-  const settleH = discount > 0 ? 30 : 24;
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(margin, y, contentW, settleH, 2, 2, 'FD');
-
-  const sY = y + 5;
-  // Column headers
-  const cols = [margin + 3, margin + 40, margin + 95, W - margin - 3];
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
-  doc.text('Settlement', cols[0], sY);
-  doc.text('Receipt No', cols[1], sY);
-  doc.text('Mode', cols[2], sY);
-  doc.text('Amount', cols[3], sY, { align: 'right' });
-
-  // Values row 1
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Payment', cols[0], sY + 6);
-  doc.text(billNum, cols[1], sY + 6);
-  doc.text('Cash', cols[2], sY + 6);
-  doc.text(fmtRs(total), cols[3], sY + 6, { align: 'right' });
-
-  if (discount > 0) {
+    doc.setTextColor(...txtDark);
+    doc.text(label, totalsX, ry);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(22, 163, 74);
-    doc.text(`Discount (${discount}%): - ${fmtRs(discountAmt)}`, cols[0], sY + 12);
-    doc.setTextColor(71, 85, 105);
-    doc.text(`GST @ 18%: ${fmtRs(gstAmt)}`, cols[0], sY + 18);
-  } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(71, 85, 105);
-    doc.text(`GST @ 18%: ${fmtRs(gstAmt)}`, cols[0], sY + 12);
-  }
+    doc.setTextColor(...txtMid);
+    doc.text(value, W - margin, ry, { align: 'right' });
+  });
 
-  y += settleH + 4;
+  const afterTotals = totY + totalsRows.length * 5 + 2;
 
-  // ── NET BILL + TOTAL PAID ────────────────────────────────
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(71, 85, 105);
-  doc.text('Net Bill Amount:', W - margin - 55, y);
+  // Authorized Signature
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(15, 23, 42);
-  doc.text(fmtRs(total), W - margin, y, { align: 'right' });
-  y += 5;
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(71, 85, 105);
-  doc.text('Total Paid Amount:', W - margin - 55, y);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(15, 23, 42);
-  doc.text(fmtRs(total), W - margin, y, { align: 'right' });
-  y += 8;
-
-  // ── AUTHORIZED SIGNATURE ────────────────────────────────
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(51, 65, 85);
-  doc.text('Authorized Signature:', W - margin, y, { align: 'right' });
-  y += 10;
-
-  // Divider
-  doc.setDrawColor(203, 213, 225);
-  doc.setLineWidth(0.4);
-  doc.line(margin, y, W - margin, y);
-  y += 5;
-
-  // ── RECEIVED WITH THANKS ────────────────────────────────
-  doc.setFont('helvetica', 'italic');
   doc.setFontSize(7.5);
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Received with thanks: ${toWords(total)}`, margin, y);
+  doc.setTextColor(...txtDark);
+  doc.text('Authorized', totalsX, afterTotals);
+  doc.text('Signature :', totalsX, afterTotals + 4);
+
+  // Settlement table (left side)
+  const settleTableY = y;
+  autoTable(doc, {
+    startY: settleTableY,
+    margin: { left: margin, right: margin + totalsW + 4 },
+    head: [['Settlement', 'Payment', 'Receipt No', 'Mode', 'Amount']],
+    body: [[
+      'Settlement',
+      dateShort,
+      billNum,
+      'Cash',
+      fmtNum(total),
+    ]],
+    headStyles: {
+      fillColor: [255, 255, 255],
+      textColor: txtDark,
+      fontSize: 7.5,
+      fontStyle: 'bold',
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
+      lineColor: lineColor,
+      lineWidth: 0.3,
+    },
+    bodyStyles: {
+      fontSize: 7.5,
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
+      textColor: txtMid,
+      lineColor: lineColor,
+      lineWidth: 0.2,
+    },
+    alternateRowStyles: { fillColor: [255, 255, 255] },
+    tableLineColor: lineColor,
+    tableLineWidth: 0.3,
+  });
+
+  y = Math.max(doc.lastAutoTable.finalY, afterTotals + 6) + 5;
+
+  // ── FOOTER ───────────────────────────────────────────────
+  // Received with thanks
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...txtDark);
+  doc.text('Received with thanks : ', margin, y);
+  const rwLabel = doc.getTextWidth('Received with thanks : ');
+  doc.setFont('helvetica', 'normal');
+  doc.text(toWords(total), margin + rwLabel, y, { maxWidth: contentW - rwLabel });
   y += 5;
 
   // Download instructions
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
-  doc.text(
-    `You can download your report from the ${clinic.name || 'Diagnostic Center'} portal. For any query, contact: ${clinic.phone || 'support@diagbill.com'}`,
-    margin, y, { maxWidth: contentW }
-  );
-  y += 8;
+  doc.setFontSize(7.5);
+  doc.setTextColor(...txtMid);
+  const dlLine = `You can download your report from the ${clinic.name || 'Diagnostic Center'} portal.`;
+  doc.text(dlLine, margin, y);
+  y += 4;
+  doc.text(`For any query, kindly contact: ${clinic.email || clinic.phone || 'support@diagbill.com'}`, margin, y);
+  y += 5;
 
-  // ── TERMS AND CONDITIONS ────────────────────────────────
+  // AAA+ style line
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(51, 65, 85);
+  doc.setFontSize(9);
+  doc.setTextColor(...clinicColor);
+  doc.text(`Please verify your report for ${clinic.name || 'DiagBill'} assured quality`, margin, y);
+  y += 6;
+
+  // Terms and Conditions
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...txtDark);
   doc.text('TERMS AND CONDITIONS GOVERNING THIS REPORT', margin, y);
   y += 4;
 
   const terms = [
-    'Reported results are for information and interpretation of the referring doctor or such other medical professionals who understand reporting units, reference ranges and limitations of technologies.',
-    'This is a computer generated medical diagnostics report that has been validated by an Authorized Medical Practitioner/Doctor. The report does not need a physical signature.',
+    'Reported results are for information and interpretation of the referring doctor or such other medical professionals who understand reporting units, reference ranges and limitation of technologies.',
+    'This is a computer generated medical diagnostics report validated by an Authorized Medical Practitioner/Doctor. The report does not need a physical signature.',
     'Partial reproduction of this report is not valid and should not be resorted to draw any conclusion.',
-    'Results delays may occur due to unforeseen circumstances such as non-availability of kits, equipment breakdown, natural calamities, or any other unavoidable event.',
+    'Results delays may occur due to unforeseen circumstances such as non-availability of kits, equipment breakdown, or any other unavoidable event.',
   ];
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.2);
-  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(6.5);
+  doc.setTextColor(...txtLight);
   terms.forEach((term, i) => {
     const lines = doc.splitTextToSize(`${i + 1}. ${term}`, contentW);
     doc.text(lines, margin, y);
-    y += lines.length * 3.3;
+    y += lines.length * 3.2;
   });
 
-  // Bottom bar
+  // Bottom colored bar
   doc.setFillColor(...clinicColor);
   doc.rect(0, 291, W, 6, 'F');
   doc.setFont('helvetica', 'normal');
