@@ -2,10 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { generatePDF } from '../utils/generatePDF';
 import { CheckCircle, FileX, Loader } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL.replace('/api', '')
-  : '';
+import api from '../api/axios';
 
 export default function BillScanPage() {
   const { billNumber } = useParams();
@@ -14,10 +11,9 @@ export default function BillScanPage() {
   useEffect(() => {
     async function downloadBill() {
       try {
-        const res = await fetch(`${API_BASE}/api/public/scan/${billNumber}`);
-        if (!res.ok) throw new Error('Bill not found');
-        const bill = await res.json();
-        await generatePDF(bill);
+        // no leading slash → resolves against axios baseURL correctly
+        const { data } = await api.get(`public/scan/${billNumber}`);
+        await generatePDF(data);
         setStatus('done');
       } catch {
         setStatus('error');
@@ -27,35 +23,32 @@ export default function BillScanPage() {
   }, [billNumber]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-10 max-w-sm w-full text-center">
+    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'sans-serif' }}>
+      <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0', padding: '40px', maxWidth: '360px', width: '100%', textAlign: 'center' }}>
         {status === 'loading' && (
           <>
-            <Loader size={40} className="mx-auto text-blue-500 animate-spin mb-4" />
-            <h2 className="text-lg font-bold text-slate-800">Preparing PDF…</h2>
-            <p className="text-slate-400 text-sm mt-1">Bill No: {billNumber}</p>
+            <Loader size={44} style={{ color: '#2563eb', margin: '0 auto 16px', display: 'block', animation: 'spin 1s linear infinite' }} />
+            <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
+            <p style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: '0 0 6px' }}>Preparing PDF…</p>
+            <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>Bill No: {billNumber}</p>
           </>
         )}
         {status === 'done' && (
           <>
-            <CheckCircle size={40} className="mx-auto text-green-500 mb-4" />
-            <h2 className="text-lg font-bold text-slate-800">Download Started!</h2>
-            <p className="text-slate-400 text-sm mt-1">
-              Bill <span className="font-mono">{billNumber}</span> is downloading.
-            </p>
-            <p className="text-slate-300 text-xs mt-3">You may close this tab.</p>
+            <CheckCircle size={44} style={{ color: '#16a34a', margin: '0 auto 16px', display: 'block' }} />
+            <p style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: '0 0 6px' }}>Download Started!</p>
+            <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 12px' }}>Bill <span style={{ fontFamily: 'monospace' }}>{billNumber}</span> is downloading.</p>
+            <p style={{ fontSize: '12px', color: '#cbd5e1', margin: 0 }}>You may close this tab.</p>
           </>
         )}
         {status === 'error' && (
           <>
-            <FileX size={40} className="mx-auto text-red-400 mb-4" />
-            <h2 className="text-lg font-bold text-slate-800">Bill Not Found</h2>
-            <p className="text-slate-400 text-sm mt-1">
-              Could not find bill <span className="font-mono">{billNumber}</span>.
-            </p>
+            <FileX size={44} style={{ color: '#f87171', margin: '0 auto 16px', display: 'block' }} />
+            <p style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: '0 0 6px' }}>Bill Not Found</p>
+            <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>Could not find bill <span style={{ fontFamily: 'monospace' }}>{billNumber}</span>.</p>
           </>
         )}
-        <p className="text-slate-200 text-xs mt-6">Powered by DiagBill</p>
+        <p style={{ fontSize: '11px', color: '#e2e8f0', marginTop: '24px' }}>Powered by DiagBill</p>
       </div>
     </div>
   );

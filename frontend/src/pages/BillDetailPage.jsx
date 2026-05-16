@@ -185,7 +185,7 @@ export default function BillDetailPage() {
           <BarcodeBlock
             value={bill.billNumber}
             scanUrl={`${window.location.origin}/scan/${bill.billNumber}`}
-            height={30} width={1.2} fontSize={8}
+            height={36} width={1.5} fontSize={9}
           />
         </div>
 

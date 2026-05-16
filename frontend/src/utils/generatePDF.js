@@ -168,12 +168,12 @@ export async function generatePDF(bill) {
     const scanUrl = `${window.location.origin}/scan/${billNum}`;
     const canvas = document.createElement('canvas');
     JsBarcode(canvas, scanUrl, {
-      format: 'CODE128', width: 1.2, height: 28,
-      displayValue: false, margin: 2,
+      format: 'CODE128', width: 1.6, height: 40,
+      displayValue: false, margin: 4,
       background: '#ffffff', lineColor: '#0f172a',
     });
-    const bcW = 48;
-    const bcH = 10;
+    const bcW = 60;
+    const bcH = 14;
     doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, y, bcW, bcH);
     // Bill number label below barcode
     doc.setFont('helvetica', 'normal');

@@ -108,7 +108,7 @@ export default function InvoicePreview({ billNumber }) {
         <BarcodeBlock
           value={billNum}
           scanUrl={`${window.location.origin}/scan/${billNum}`}
-          height={20} width={0.8} fontSize={6}
+          height={24} width={1.0} fontSize={7}
         />
       </div>
 
