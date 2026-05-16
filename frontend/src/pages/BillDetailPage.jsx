@@ -182,11 +182,7 @@ export default function BillDetailPage() {
 
         {/* ── Barcode (left-aligned, encodes scan URL) ── */}
         <div className="px-8 pb-3" style={{ display: 'inline-block' }}>
-          <BarcodeBlock
-            value={bill.billNumber}
-            scanUrl={`${window.location.origin}/scan/${bill.billNumber}`}
-            height={36} width={1.5} fontSize={9}
-          />
+          <BarcodeBlock value={bill.billNumber} height={36} width={1.5} fontSize={9} />
         </div>
 
         {/* ── Divider ── */}

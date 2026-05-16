@@ -10,6 +10,7 @@ exports.getBills = async (req, res) => {
         { billNumber: { $regex: req.query.search, $options: 'i' } },
         { 'patient.name': { $regex: req.query.search, $options: 'i' } },
         { 'patient.phone': { $regex: req.query.search, $options: 'i' } },
+        { companyName: { $regex: req.query.search, $options: 'i' } },
       ];
     }
     if (req.query.dateFrom || req.query.dateTo) {

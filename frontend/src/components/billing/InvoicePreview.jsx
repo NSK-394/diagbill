@@ -105,11 +105,7 @@ export default function InvoicePreview({ billNumber }) {
 
       {/* Barcode — LEFT aligned, encodes scan URL */}
       <div className="px-4 py-1.5" style={{ display: 'inline-block' }}>
-        <BarcodeBlock
-          value={billNum}
-          scanUrl={`${window.location.origin}/scan/${billNum}`}
-          height={24} width={1.0} fontSize={7}
-        />
+        <BarcodeBlock value={billNum} height={24} width={1.0} fontSize={7} />
       </div>
 
       {/* Divider */}

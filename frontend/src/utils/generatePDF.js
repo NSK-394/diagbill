@@ -165,22 +165,17 @@ export async function generatePDF(bill) {
 
   // ── BARCODE (left-aligned, encodes scan URL) ─────────────
   try {
-    const scanUrl = `${window.location.origin}/scan/${billNum}`;
+    const safeVal = billNum.replace(/[^A-Z0-9\-\.\ \$\/\+\%]/gi, '').toUpperCase() || 'PREVIEW';
     const canvas = document.createElement('canvas');
-    JsBarcode(canvas, scanUrl, {
+    JsBarcode(canvas, safeVal, {
       format: 'CODE128', width: 1.6, height: 40,
-      displayValue: false, margin: 4,
+      displayValue: true, fontSize: 9, margin: 4,
       background: '#ffffff', lineColor: '#0f172a',
     });
-    const bcW = 60;
-    const bcH = 14;
+    const bcW = 55;
+    const bcH = 16;
     doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, y, bcW, bcH);
-    // Bill number label below barcode
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.5);
-    doc.setTextColor(...txtLight);
-    doc.text(billNum, margin, y + bcH + 2.5);
-    y += bcH + 6;
+    y += bcH + 4;
   } catch (_) {
     y += 3;
   }
@@ -321,45 +316,13 @@ export async function generatePDF(bill) {
   doc.text(toWords(total), margin + rwLabel, y, { maxWidth: contentW - rwLabel });
   y += 5;
 
-  // Download instructions
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...txtMid);
-  const dlLine = `You can download your report from the ${clinic.name || 'Diagnostic Center'} portal.`;
-  doc.text(dlLine, margin, y);
-  y += 4;
-  doc.text(`For any query, kindly contact: ${clinic.email || clinic.phone || 'support@diagbill.com'}`, margin, y);
-  y += 5;
-
-  // AAA+ style line
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(...clinicColor);
-  doc.text(`Please verify your report for ${clinic.name || 'DiagBill'} assured quality`, margin, y);
+  // Thank You
   y += 6;
-
-  // Terms and Conditions
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...txtDark);
-  doc.text('TERMS AND CONDITIONS GOVERNING THIS REPORT', margin, y);
-  y += 4;
-
-  const terms = [
-    'Reported results are for information and interpretation of the referring doctor or such other medical professionals who understand reporting units, reference ranges and limitation of technologies.',
-    'This is a computer generated medical diagnostics report validated by an Authorized Medical Practitioner/Doctor. The report does not need a physical signature.',
-    'Partial reproduction of this report is not valid and should not be resorted to draw any conclusion.',
-    'Results delays may occur due to unforeseen circumstances such as non-availability of kits, equipment breakdown, or any other unavoidable event.',
-  ];
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.5);
-  doc.setTextColor(...txtLight);
-  terms.forEach((term, i) => {
-    const lines = doc.splitTextToSize(`${i + 1}. ${term}`, contentW);
-    doc.text(lines, margin, y);
-    y += lines.length * 3.2;
-  });
+  doc.setFontSize(14);
+  doc.setTextColor(...clinicColor);
+  doc.text('Thank You!', W / 2, y, { align: 'center' });
+  y += 6;
 
   // Bottom colored bar
   doc.setFillColor(...clinicColor);

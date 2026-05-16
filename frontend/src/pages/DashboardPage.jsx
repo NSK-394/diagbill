@@ -52,13 +52,16 @@ export default function DashboardPage() {
     },
   ];
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">
-            Good morning, {user?.name?.split(' ')[0] || 'Admin'} 👋
+            {greeting}, {user?.name?.split(' ')[0] || 'Admin'} 👋
           </h1>
           <p className="text-slate-500 text-sm mt-1">
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
