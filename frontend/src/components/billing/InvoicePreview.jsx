@@ -84,13 +84,13 @@ export default function InvoicePreview({ billNumber }) {
           <table className="w-full border-collapse" style={{ fontSize: '10px' }}>
             <thead>
               <tr style={{ backgroundColor: '#2563EB' }}>
-                <th className="text-left py-1.5 px-1.5 text-white font-semibold rounded-tl">#</th>
-                <th className="text-left py-1.5 px-1.5 text-white font-semibold">Code</th>
+                <th className="text-center py-1.5 px-1.5 text-white font-semibold whitespace-nowrap" style={{ width: '24px' }}>#</th>
+                <th className="text-left py-1.5 px-1.5 text-white font-semibold whitespace-nowrap" style={{ width: '52px' }}>Code</th>
                 <th className="text-left py-1.5 px-1.5 text-white font-semibold">Test Name</th>
-                <th className="text-left py-1.5 px-1.5 text-white font-semibold hidden lg:table-cell">Category</th>
-                <th className="text-right py-1.5 px-1.5 text-white font-semibold">Price</th>
-                <th className="text-center py-1.5 px-1.5 text-white font-semibold">Qty</th>
-                <th className="text-right py-1.5 px-1.5 text-white font-semibold rounded-tr">Amount</th>
+                <th className="text-left py-1.5 px-1.5 text-white font-semibold whitespace-nowrap hidden lg:table-cell">Category</th>
+                <th className="text-right py-1.5 px-1.5 text-white font-semibold whitespace-nowrap">Price</th>
+                <th className="text-center py-1.5 px-1.5 text-white font-semibold whitespace-nowrap" style={{ width: '28px' }}>Qty</th>
+                <th className="text-right py-1.5 px-1.5 text-white font-semibold whitespace-nowrap">Amount</th>
               </tr>
             </thead>
             <tbody>

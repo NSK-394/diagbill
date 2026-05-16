@@ -59,7 +59,7 @@ export default function BillDetailPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-      {/* Page Header */}
+      {/* Page actions */}
       <div className="flex items-center justify-between mb-6">
         <button onClick={() => navigate('/bills')} className="btn-secondary">
           <ArrowLeft size={15} /> Back
@@ -74,26 +74,29 @@ export default function BillDetailPage() {
         </div>
       </div>
 
-      {/* Invoice Card */}
+      {/* Invoice — styled to match the PDF exactly */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200"
       >
-        {/* Blue Header */}
+        {/* ── Blue Header ── */}
         <div className="px-8 py-6 flex items-start justify-between" style={{ backgroundColor: clinicColor }}>
           <div className="flex-1 min-w-0 pr-6">
             <h1 className="text-2xl font-bold text-white leading-tight">{clinic.name}</h1>
-            {clinic.address && <p className="text-white/80 text-sm mt-1">{clinic.address}</p>}
+            {clinic.address && (
+              <p className="text-white/80 text-sm mt-1.5">{clinic.address}</p>
+            )}
             {(clinic.phone || clinic.gst) && (
               <p className="text-white/75 text-sm mt-1">
-                {[clinic.phone && `Ph: ${clinic.phone}`, clinic.gst && `GST: ${clinic.gst}`].filter(Boolean).join('   ')}
+                {[clinic.phone && `Ph: ${clinic.phone}`, clinic.gst && `GST: ${clinic.gst}`]
+                  .filter(Boolean).join('   ')}
               </p>
             )}
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-white font-bold text-xs tracking-widest uppercase">TAX INVOICE</p>
-            <p className="text-white font-mono text-lg font-bold mt-1">{bill.billNumber}</p>
+            <p className="text-white font-bold text-sm tracking-widest">TAX INVOICE</p>
+            <p className="text-white font-mono text-base font-semibold mt-1">{bill.billNumber}</p>
             <p className="text-white/80 text-sm mt-0.5">{formatDate(bill.createdAt)}</p>
             {bill.status === 'paid' ? (
               <span className="inline-flex items-center gap-1 mt-2 px-2.5 py-0.5 rounded-full bg-green-400/20 text-green-200 text-xs font-medium">
@@ -107,79 +110,99 @@ export default function BillDetailPage() {
           </div>
         </div>
 
-        {/* Patient Details */}
+        {/* ── Patient Details ── */}
         <div className="px-8 py-5">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">PATIENT DETAILS</p>
-          <div className="border border-slate-200 bg-slate-50 rounded-lg p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { label: 'Name', value: bill.patient?.name || '—' },
-                { label: 'Phone', value: bill.patient?.phone || '—' },
-                { label: 'Age / Gender', value: `${bill.patient?.age || '—'} yrs / ${bill.patient?.gender || '—'}` },
-                { label: 'Referred By', value: bill.patient?.referredBy || 'Self' },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p className="text-xs font-semibold text-slate-700">{label}</p>
-                  <p className="text-sm text-slate-600 mt-0.5">{value}</p>
-                </div>
-              ))}
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">PATIENT DETAILS</p>
+          <div className="border border-slate-200 bg-slate-50 rounded-lg px-5 py-4">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+              <div className="flex gap-2">
+                <span className="font-bold text-slate-700 text-sm whitespace-nowrap">Name:</span>
+                <span className="text-slate-600 text-sm">{bill.patient?.name || '—'}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="font-bold text-slate-700 text-sm whitespace-nowrap">Phone:</span>
+                <span className="text-slate-600 text-sm">{bill.patient?.phone || '—'}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="font-bold text-slate-700 text-sm whitespace-nowrap">Age / Gender:</span>
+                <span className="text-slate-600 text-sm">{bill.patient?.age || '—'} yrs / {bill.patient?.gender || '—'}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="font-bold text-slate-700 text-sm whitespace-nowrap">Referred By:</span>
+                <span className="text-slate-600 text-sm">{bill.patient?.referredBy || 'Self'}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Tests Table */}
+        {/* ── Diagnostic Tests ── */}
         <div className="px-8 pb-5">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">DIAGNOSTIC TESTS</p>
-          <table className="w-full border-collapse">
-            <thead>
-              <tr style={{ backgroundColor: '#2563EB' }}>
-                <th className="text-left px-3 py-2.5 text-white text-xs font-semibold rounded-tl-lg">#</th>
-                <th className="text-left px-3 py-2.5 text-white text-xs font-semibold">Code</th>
-                <th className="text-left px-3 py-2.5 text-white text-xs font-semibold">Test Name</th>
-                <th className="text-left px-3 py-2.5 text-white text-xs font-semibold hidden md:table-cell">Category</th>
-                <th className="text-right px-3 py-2.5 text-white text-xs font-semibold">Price</th>
-                <th className="text-center px-3 py-2.5 text-white text-xs font-semibold">Qty</th>
-                <th className="text-right px-3 py-2.5 text-white text-xs font-semibold rounded-tr-lg">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bill.tests?.map((test, idx) => (
-                <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}>
-                  <td className="px-3 py-3 text-sm text-slate-400">{idx + 1}</td>
-                  <td className="px-3 py-3 text-sm font-mono text-slate-600">{test.code}</td>
-                  <td className="px-3 py-3 text-sm font-medium text-slate-800">{test.name}</td>
-                  <td className="px-3 py-3 text-sm text-slate-500 hidden md:table-cell">{test.category}</td>
-                  <td className="px-3 py-3 text-sm text-right text-slate-600">{fmtRs(test.price)}</td>
-                  <td className="px-3 py-3 text-sm text-center text-slate-600">{test.qty}</td>
-                  <td className="px-3 py-3 text-sm text-right font-bold text-slate-800">{fmtRs(test.price * test.qty)}</td>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">DIAGNOSTIC TESTS</p>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr style={{ backgroundColor: clinicColor }}>
+                  {['#', 'Code', 'Test Name', 'Category', 'Price', 'Qty', 'Amount'].map((h, i) => (
+                    <th
+                      key={h}
+                      className={`py-2.5 px-3 text-white text-xs font-semibold whitespace-nowrap
+                        ${i === 0 ? 'text-center w-8' : ''}
+                        ${i === 4 || i === 6 ? 'text-right' : ''}
+                        ${i === 5 ? 'text-center w-12' : ''}
+                        ${i === 1 ? 'w-20' : ''}
+                        ${i === 3 ? 'hidden md:table-cell' : ''}
+                        ${i === 1 || i === 2 || i === 3 ? 'text-left' : ''}
+                      `}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {bill.tests?.map((test, idx) => (
+                  <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}>
+                    <td className="py-3 px-3 text-slate-400 text-center">{idx + 1}</td>
+                    <td className="py-3 px-3 font-mono text-slate-600 whitespace-nowrap">{test.code}</td>
+                    <td className="py-3 px-3 font-medium text-slate-800">{test.name}</td>
+                    <td className="py-3 px-3 text-slate-500 hidden md:table-cell">{test.category}</td>
+                    <td className="py-3 px-3 text-right text-slate-600 whitespace-nowrap">{fmtRs(test.price)}</td>
+                    <td className="py-3 px-3 text-center text-slate-600">{test.qty}</td>
+                    <td className="py-3 px-3 text-right font-bold text-slate-800 whitespace-nowrap">{fmtRs(test.price * test.qty)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Totals + Barcode */}
+        {/* ── Totals + Barcode ── */}
         <div className="px-8 py-5 border-t border-slate-200 flex flex-col sm:flex-row items-end justify-between gap-6">
-          <BarcodeBlock value={bill.billNumber} height={55} width={1.8} fontSize={11} />
-          <div style={{ minWidth: '220px' }}>
-            <div className="border border-slate-200 bg-slate-50 rounded-lg px-4 py-3 space-y-1.5">
+          {/* Barcode left */}
+          <div>
+            <BarcodeBlock value={bill.billNumber} height={55} width={1.8} fontSize={11} />
+          </div>
+
+          {/* Totals right — light box + blue TOTAL row */}
+          <div style={{ minWidth: '240px' }}>
+            <div className="border border-slate-200 bg-slate-50 rounded-lg px-4 py-3 space-y-2">
               <div className="flex justify-between text-sm text-slate-600">
                 <span>Subtotal</span>
-                <span>{fmtRs(bill.subtotal)}</span>
+                <span className="font-medium">{fmtRs(bill.subtotal)}</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
                   <span>Discount ({discount}%)</span>
-                  <span>- {fmtRs(discountAmt)}</span>
+                  <span className="font-medium">- {fmtRs(discountAmt)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm text-slate-600">
                 <span>GST @ 18%</span>
-                <span>{fmtRs(bill.gstAmount)}</span>
+                <span className="font-medium">{fmtRs(bill.gstAmount)}</span>
               </div>
             </div>
             <div
-              className="flex justify-between font-bold text-white text-base px-4 py-2.5 mt-1.5 rounded-lg"
+              className="flex justify-between font-bold text-white text-base px-4 py-3 mt-1.5 rounded-lg"
               style={{ backgroundColor: clinicColor }}
             >
               <span>TOTAL</span>
@@ -188,7 +211,7 @@ export default function BillDetailPage() {
           </div>
         </div>
 
-        {/* Footer */}
+        {/* ── Footer ── */}
         <div className="px-8 py-4 border-t border-slate-200 text-center">
           <p className="text-slate-500 text-sm italic">
             Thank you for choosing {clinic.name}. Get well soon!
