@@ -13,6 +13,7 @@ export async function generatePDF(bill) {
   const clinic = bill.clinicId || {};
   const patient = bill.patient || {};
   const tests = bill.tests || [];
+  const billNum = bill.billNumber || 'PREVIEW';
 
   // Header Background
   doc.setFillColor(37, 99, 235);
@@ -32,14 +33,13 @@ export async function generatePDF(bill) {
   const contactLine = [clinic.phone && `Ph: ${clinic.phone}`, clinic.gst && `GST: ${clinic.gst}`].filter(Boolean).join('   ');
   if (contactLine) doc.text(contactLine, margin + 5, y + 30);
 
-  // "TAX INVOICE" badge
+  // TAX INVOICE badge (right side of header)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(255, 255, 255);
   doc.text('TAX INVOICE', W - margin - 5, y + 10, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  const billNum = bill.billNumber || 'PREVIEW';
   doc.text(billNum, W - margin - 5, y + 18, { align: 'right' });
   const dateStr = new Date(bill.createdAt || Date.now()).toLocaleDateString('en-IN', {
     day: '2-digit', month: 'short', year: 'numeric',
@@ -48,13 +48,14 @@ export async function generatePDF(bill) {
 
   y += 46;
 
-  // Patient Details
+  // Patient Details label
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
   doc.text('PATIENT DETAILS', margin, y);
   y += 5;
 
+  // Patient box
   doc.setDrawColor(226, 232, 240);
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(margin, y, W - margin * 2, 24, 2, 2, 'FD');
@@ -86,7 +87,7 @@ export async function generatePDF(bill) {
 
   y += 30;
 
-  // Tests Table
+  // Tests Table label
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
@@ -120,12 +121,11 @@ export async function generatePDF(bill) {
       5: { cellWidth: 10, halign: 'center' },
       6: { cellWidth: 25, halign: 'right', fontStyle: 'bold' },
     },
-    didDrawPage: () => {},
   });
 
   y = doc.lastAutoTable.finalY + 6;
 
-  // Totals Section
+  // Totals
   const totalsX = W - margin - 75;
   const totalsW = 75;
 
@@ -155,7 +155,7 @@ export async function generatePDF(bill) {
     rowY += 7;
   });
 
-  // Total Row
+  // Total row (blue)
   doc.setFillColor(37, 99, 235);
   doc.roundedRect(totalsX, rowY - 2, totalsW, 10, 2, 2, 'F');
   doc.setFont('helvetica', 'bold');
@@ -168,8 +168,9 @@ export async function generatePDF(bill) {
 
   // Barcode
   try {
+    const safeValue = billNum.replace(/[^A-Z0-9\-\.\ \$\/\+\%]/gi, '').toUpperCase() || 'PREVIEW';
     const canvas = document.createElement('canvas');
-    JsBarcode(canvas, billNum, {
+    JsBarcode(canvas, safeValue, {
       format: 'CODE128',
       width: 2,
       height: 40,
@@ -180,7 +181,7 @@ export async function generatePDF(bill) {
       lineColor: '#1e293b',
     });
     const barcodeDataUrl = canvas.toDataURL('image/png');
-    doc.addImage(barcodeDataUrl, 'PNG', margin, y, 55, 18);
+    doc.addImage(barcodeDataUrl, 'PNG', margin, y, 60, 18);
   } catch (_) {
     // barcode failed silently
   }

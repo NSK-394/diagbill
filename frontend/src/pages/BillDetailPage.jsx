@@ -7,13 +7,11 @@ import { generatePDF } from '../utils/generatePDF';
 import toast from 'react-hot-toast';
 import BarcodeBlock from '../components/invoice/BarcodeBlock';
 
-const formatCurrency = (n) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n || 0);
+const fmtRs = (n) =>
+  `Rs. ${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const formatDate = (d) =>
-  new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-
-const getInitials = (name) => name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'DC';
+  new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
 export default function BillDetailPage() {
   const { id } = useParams();
@@ -55,10 +53,13 @@ export default function BillDetailPage() {
   }
 
   const clinic = bill.clinicId || {};
+  const clinicColor = clinic.color || '#2563EB';
+  const discount = bill.discount || 0;
+  const discountAmt = discount > 0 ? (bill.subtotal * discount) / 100 : 0;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-      {/* Header */}
+      {/* Page Header */}
       <div className="flex items-center justify-between mb-6">
         <button onClick={() => navigate('/bills')} className="btn-secondary">
           <ArrowLeft size={15} /> Back
@@ -79,87 +80,78 @@ export default function BillDetailPage() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200"
       >
-        {/* Clinic Header */}
-        <div className="px-8 py-6 text-white" style={{ backgroundColor: clinic.color || '#2563EB' }}>
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                {getInitials(clinic.name)}
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">{clinic.name}</h1>
-                {clinic.address && <p className="text-white/80 text-sm mt-1">{clinic.address}</p>}
-                <div className="flex gap-4 mt-1 text-white/70 text-sm">
-                  {clinic.phone && <span>📞 {clinic.phone}</span>}
-                  {clinic.email && <span>✉ {clinic.email}</span>}
-                </div>
-                {clinic.gst && <p className="text-white/70 text-xs mt-1">GSTIN: {clinic.gst}</p>}
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-white/70 text-xs uppercase tracking-widest">Tax Invoice</p>
-              <p className="text-xl font-mono font-bold mt-1">{bill.billNumber}</p>
-              <p className="text-white/80 text-sm mt-1">{formatDate(bill.createdAt)}</p>
-              {bill.status === 'paid' ? (
-                <span className="inline-flex items-center gap-1 badge bg-green-400/20 text-green-200 mt-2">
-                  <CheckCircle size={11} /> PAID
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 badge bg-yellow-400/20 text-yellow-200 mt-2">
-                  <Clock size={11} /> PENDING
-                </span>
-              )}
-            </div>
+        {/* Blue Header */}
+        <div className="px-8 py-6 flex items-start justify-between" style={{ backgroundColor: clinicColor }}>
+          <div className="flex-1 min-w-0 pr-6">
+            <h1 className="text-2xl font-bold text-white leading-tight">{clinic.name}</h1>
+            {clinic.address && <p className="text-white/80 text-sm mt-1">{clinic.address}</p>}
+            {(clinic.phone || clinic.gst) && (
+              <p className="text-white/75 text-sm mt-1">
+                {[clinic.phone && `Ph: ${clinic.phone}`, clinic.gst && `GST: ${clinic.gst}`].filter(Boolean).join('   ')}
+              </p>
+            )}
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-white font-bold text-xs tracking-widest uppercase">TAX INVOICE</p>
+            <p className="text-white font-mono text-lg font-bold mt-1">{bill.billNumber}</p>
+            <p className="text-white/80 text-sm mt-0.5">{formatDate(bill.createdAt)}</p>
+            {bill.status === 'paid' ? (
+              <span className="inline-flex items-center gap-1 mt-2 px-2.5 py-0.5 rounded-full bg-green-400/20 text-green-200 text-xs font-medium">
+                <CheckCircle size={11} /> PAID
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 mt-2 px-2.5 py-0.5 rounded-full bg-yellow-400/20 text-yellow-200 text-xs font-medium">
+                <Clock size={11} /> PENDING
+              </span>
+            )}
           </div>
         </div>
 
         {/* Patient Details */}
-        <div className="px-8 py-5 bg-slate-50 border-b border-slate-200">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Patient Information</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { label: 'Patient Name', value: bill.patient?.name },
-              { label: 'Age / Gender', value: `${bill.patient?.age || '—'} yrs / ${bill.patient?.gender || '—'}` },
-              { label: 'Phone', value: bill.patient?.phone || '—' },
-              { label: 'Referred By', value: bill.patient?.referredBy || 'Self' },
-            ].map(({ label, value }) => (
-              <div key={label}>
-                <p className="text-xs text-slate-500">{label}</p>
-                <p className="text-sm font-semibold text-slate-800 mt-0.5">{value}</p>
-              </div>
-            ))}
+        <div className="px-8 py-5">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">PATIENT DETAILS</p>
+          <div className="border border-slate-200 bg-slate-50 rounded-lg p-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { label: 'Name', value: bill.patient?.name || '—' },
+                { label: 'Phone', value: bill.patient?.phone || '—' },
+                { label: 'Age / Gender', value: `${bill.patient?.age || '—'} yrs / ${bill.patient?.gender || '—'}` },
+                { label: 'Referred By', value: bill.patient?.referredBy || 'Self' },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p className="text-xs font-semibold text-slate-700">{label}</p>
+                  <p className="text-sm text-slate-600 mt-0.5">{value}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Tests Table */}
-        <div className="px-8 py-5">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Diagnostic Tests</h3>
-          <table className="w-full">
+        <div className="px-8 pb-5">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">DIAGNOSTIC TESTS</p>
+          <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-slate-50 rounded-lg">
-                <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-500 uppercase">#</th>
-                <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-500 uppercase">Test Name</th>
-                <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-500 uppercase hidden sm:table-cell">Code</th>
-                <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-500 uppercase hidden md:table-cell">Category</th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-slate-500 uppercase">Price</th>
-                <th className="text-center px-3 py-2.5 text-xs font-semibold text-slate-500 uppercase">Qty</th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-slate-500 uppercase">Amount</th>
+              <tr style={{ backgroundColor: '#2563EB' }}>
+                <th className="text-left px-3 py-2.5 text-white text-xs font-semibold rounded-tl-lg">#</th>
+                <th className="text-left px-3 py-2.5 text-white text-xs font-semibold">Code</th>
+                <th className="text-left px-3 py-2.5 text-white text-xs font-semibold">Test Name</th>
+                <th className="text-left px-3 py-2.5 text-white text-xs font-semibold hidden md:table-cell">Category</th>
+                <th className="text-right px-3 py-2.5 text-white text-xs font-semibold">Price</th>
+                <th className="text-center px-3 py-2.5 text-white text-xs font-semibold">Qty</th>
+                <th className="text-right px-3 py-2.5 text-white text-xs font-semibold rounded-tr-lg">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {bill.tests?.map((test, idx) => (
-                <tr key={idx} className="hover:bg-slate-50">
+                <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}>
                   <td className="px-3 py-3 text-sm text-slate-400">{idx + 1}</td>
+                  <td className="px-3 py-3 text-sm font-mono text-slate-600">{test.code}</td>
                   <td className="px-3 py-3 text-sm font-medium text-slate-800">{test.name}</td>
-                  <td className="px-3 py-3 text-sm text-slate-500 hidden sm:table-cell">
-                    <span className="font-mono badge bg-slate-100">{test.code}</span>
-                  </td>
                   <td className="px-3 py-3 text-sm text-slate-500 hidden md:table-cell">{test.category}</td>
-                  <td className="px-3 py-3 text-sm text-right text-slate-600">{formatCurrency(test.price)}</td>
+                  <td className="px-3 py-3 text-sm text-right text-slate-600">{fmtRs(test.price)}</td>
                   <td className="px-3 py-3 text-sm text-center text-slate-600">{test.qty}</td>
-                  <td className="px-3 py-3 text-sm text-right font-semibold text-slate-800">
-                    {formatCurrency(test.price * test.qty)}
-                  </td>
+                  <td className="px-3 py-3 text-sm text-right font-bold text-slate-800">{fmtRs(test.price * test.qty)}</td>
                 </tr>
               ))}
             </tbody>
@@ -167,30 +159,43 @@ export default function BillDetailPage() {
         </div>
 
         {/* Totals + Barcode */}
-        <div className="px-8 py-5 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-end justify-between gap-6">
-          <BarcodeBlock value={bill.billNumber} height={60} width={1.8} fontSize={12} />
-          <div className="space-y-2 min-w-[220px]">
-            {[
-              { label: 'Subtotal', value: formatCurrency(bill.subtotal), cls: 'text-slate-600' },
-              bill.discount > 0 && { label: `Discount (${bill.discount}%)`, value: `- ${formatCurrency((bill.subtotal * bill.discount) / 100)}`, cls: 'text-green-600' },
-              { label: 'GST (18%)', value: formatCurrency(bill.gstAmount), cls: 'text-slate-600' },
-            ].filter(Boolean).map((row) => (
-              <div key={row.label} className={`flex justify-between text-sm ${row.cls}`}>
-                <span>{row.label}</span>
-                <span>{row.value}</span>
+        <div className="px-8 py-5 border-t border-slate-200 flex flex-col sm:flex-row items-end justify-between gap-6">
+          <BarcodeBlock value={bill.billNumber} height={55} width={1.8} fontSize={11} />
+          <div style={{ minWidth: '220px' }}>
+            <div className="border border-slate-200 bg-slate-50 rounded-lg px-4 py-3 space-y-1.5">
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>Subtotal</span>
+                <span>{fmtRs(bill.subtotal)}</span>
               </div>
-            ))}
-            <div className="flex justify-between font-bold text-lg pt-3 border-t border-slate-300">
-              <span className="text-slate-800">Total</span>
-              <span className="text-blue-600">{formatCurrency(bill.total)}</span>
+              {discount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Discount ({discount}%)</span>
+                  <span>- {fmtRs(discountAmt)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>GST @ 18%</span>
+                <span>{fmtRs(bill.gstAmount)}</span>
+              </div>
+            </div>
+            <div
+              className="flex justify-between font-bold text-white text-base px-4 py-2.5 mt-1.5 rounded-lg"
+              style={{ backgroundColor: clinicColor }}
+            >
+              <span>TOTAL</span>
+              <span>{fmtRs(bill.total)}</span>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-4 text-center border-t border-slate-200">
-          <p className="text-slate-500 text-sm italic">Thank you for choosing {clinic.name}. Get well soon!</p>
-          <p className="text-slate-400 text-xs mt-1">This is a computer generated invoice. Powered by DiagBill.</p>
+        <div className="px-8 py-4 border-t border-slate-200 text-center">
+          <p className="text-slate-500 text-sm italic">
+            Thank you for choosing {clinic.name}. Get well soon!
+          </p>
+          <p className="text-slate-400 text-xs mt-1">
+            This is a computer generated invoice. Powered by DiagBill.
+          </p>
         </div>
       </motion.div>
     </div>
