@@ -22,19 +22,38 @@ export default function BillSummary({ onBillCreated }) {
   const [saving, setSaving] = useState(false);
   const [savedBill, setSavedBill] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState('paid');
-  const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState(
-    billingType === 'corporate' ? companyName : patient?.name || ''
-  );
+  const [editingPatient, setEditingPatient] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: billingType === 'corporate' ? companyName : (patient?.name || ''),
+    age: patient?.age || '',
+    gender: patient?.gender || 'Male',
+    phone: patient?.phone || '',
+  });
   const navigate = useNavigate();
 
-  const saveName = () => {
+  const openEdit = () => {
+    setEditForm({
+      name: billingType === 'corporate' ? companyName : (patient?.name || ''),
+      age: patient?.age || '',
+      gender: patient?.gender || 'Male',
+      phone: patient?.phone || '',
+    });
+    setEditingPatient(true);
+  };
+
+  const saveEdit = () => {
     if (billingType === 'corporate') {
-      setCompanyName(nameInput.trim() || companyName);
+      setCompanyName(editForm.name.trim() || companyName);
     } else {
-      updatePatient({ ...patient, name: nameInput.trim() || patient.name });
+      updatePatient({
+        ...patient,
+        name: editForm.name.trim() || patient.name,
+        age: editForm.age,
+        gender: editForm.gender,
+        phone: editForm.phone,
+      });
     }
-    setEditingName(false);
+    setEditingPatient(false);
   };
 
   const handleSave = async () => {
@@ -96,6 +115,10 @@ export default function BillSummary({ onBillCreated }) {
     ? (companyName || 'Company')
     : (patient?.name || 'Patient');
 
+  const patientSubline = billingType === 'individual'
+    ? [patient?.age && `${patient.age} yrs`, patient?.gender, patient?.phone].filter(Boolean).join(' · ')
+    : null;
+
   return (
     <div>
       <div className="mb-4">
@@ -117,47 +140,96 @@ export default function BillSummary({ onBillCreated }) {
         </motion.div>
       )}
 
-      {/* ── Name / Company with inline edit ── */}
-      <div className="card mb-4 px-4 py-3 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-          {billingType === 'corporate'
-            ? <Building2 size={15} className="text-blue-600" />
-            : <User size={15} className="text-blue-600" />}
-        </div>
-        {editingName ? (
-          <div className="flex flex-1 gap-2">
-            <input
-              autoFocus
-              type="text"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
-              className="input-field flex-1 py-1.5 text-sm"
-              placeholder={billingType === 'corporate' ? 'Company name' : 'Patient name'}
-            />
-            <button onClick={saveName} className="btn-primary py-1.5 px-3 text-sm">Save</button>
-            <button onClick={() => setEditingName(false)} className="btn-secondary py-1.5 px-2">
-              <X size={14} />
-            </button>
+      {/* ── Patient / Company card with inline edit ── */}
+      <div className="card mb-4 overflow-hidden">
+        {editingPatient ? (
+          <div className="p-4 space-y-3">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
+              Edit {billingType === 'corporate' ? 'Company' : 'Patient'} Details
+            </p>
+            <div>
+              <label className="label">{billingType === 'corporate' ? 'Company Name' : 'Patient Name'}</label>
+              <input
+                autoFocus
+                type="text"
+                value={editForm.name}
+                onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                className="input-field text-sm"
+                placeholder={billingType === 'corporate' ? 'Company name' : 'Full name'}
+              />
+            </div>
+            {billingType === 'individual' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Age</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={editForm.age}
+                      onChange={(e) => setEditForm((f) => ({ ...f, age: e.target.value }))}
+                      className="input-field text-sm"
+                      placeholder="Age in years"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Gender</label>
+                    <select
+                      value={editForm.gender}
+                      onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
+                      className="input-field text-sm"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Contact Number</label>
+                  <input
+                    type="text"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                    className="input-field text-sm"
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
+                  />
+                </div>
+              </>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button onClick={saveEdit} className="btn-primary flex-1 justify-center py-2">Save Changes</button>
+              <button onClick={() => setEditingPatient(false)} className="btn-secondary py-2 px-3"><X size={14} /></button>
+            </div>
           </div>
         ) : (
-          <>
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              {billingType === 'corporate'
+                ? <Building2 size={15} className="text-blue-600" />
+                : <User size={15} className="text-blue-600" />}
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-slate-400 uppercase tracking-wide">
                 {billingType === 'corporate' ? 'Company' : 'Patient'}
               </p>
               <p className="font-semibold text-slate-800 truncate">{displayName}</p>
+              {patientSubline && (
+                <p className="text-xs text-slate-400 mt-0.5">{patientSubline}</p>
+              )}
             </div>
             {!savedBill && (
               <button
-                onClick={() => { setNameInput(displayName); setEditingName(true); }}
+                onClick={openEdit}
                 className="text-slate-400 hover:text-blue-600 transition-colors flex-shrink-0"
-                title="Edit name"
+                title="Edit details"
               >
                 <Pencil size={15} />
               </button>
             )}
-          </>
+          </div>
         )}
       </div>
 
