@@ -14,18 +14,8 @@ const app = express();
 
 connectDB();
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:3000'];
-
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(o => origin.startsWith(o.trim()))) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
