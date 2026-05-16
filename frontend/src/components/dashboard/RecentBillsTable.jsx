@@ -1,5 +1,6 @@
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Eye, CheckCircle, Clock } from 'lucide-react';
+import { Eye, CheckCircle, Clock, FileText } from 'lucide-react';
 
 const formatCurrency = (n) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
@@ -15,79 +16,109 @@ export default function RecentBillsTable({ bills = [] }) {
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
         <div>
           <h3 className="font-semibold text-slate-800">Recent Bills</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Latest billing transactions</p>
+          <p className="text-xs text-slate-400 mt-0.5">Latest billing transactions</p>
         </div>
-        <button
+        <motion.button
           onClick={() => navigate('/bills')}
-          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+          whileHover={{ x: 2 }}
+          transition={{ duration: 0.15 }}
         >
           View all →
-        </button>
+        </motion.button>
       </div>
 
       <div className="overflow-x-auto">
-        {bills.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            <p className="text-sm">No bills yet. Create your first bill!</p>
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="bg-surface-50 border-b border-slate-100">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Bill #</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Patient</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Clinic</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Date</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Amount</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Status</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {bills.map((bill) => (
-                <tr key={bill._id} className="hover:bg-surface-50 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <span className="text-sm font-mono font-semibold text-blue-600">{bill.billNumber}</span>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <div>
-                      <p className="text-sm font-medium text-slate-800">{bill.patient?.name}</p>
-                      <p className="text-xs text-slate-400">{bill.patient?.phone}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5 hidden sm:table-cell">
-                    <span className="text-sm text-slate-600">{bill.clinicId?.name || '—'}</span>
-                  </td>
-                  <td className="px-4 py-3.5 hidden md:table-cell">
-                    <span className="text-sm text-slate-500">{formatDate(bill.createdAt)}</span>
-                  </td>
-                  <td className="px-4 py-3.5 text-right">
-                    <span className="text-sm font-semibold text-slate-800">{formatCurrency(bill.total)}</span>
-                  </td>
-                  <td className="px-4 py-3.5 text-center hidden sm:table-cell">
-                    {bill.status === 'paid' ? (
-                      <span className="inline-flex items-center gap-1 badge bg-green-100 text-green-700">
-                        <CheckCircle size={10} /> Paid
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 badge bg-yellow-100 text-yellow-700">
-                        <Clock size={10} /> Pending
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3.5 text-right">
-                    <button
-                      onClick={() => navigate(`/bills/${bill._id}`)}
-                      className="text-slate-400 hover:text-blue-600 transition-colors p-1"
+        <AnimatePresence>
+          {bills.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-16 text-slate-300"
+            >
+              <FileText size={40} strokeWidth={1.2} className="mb-3" />
+              <p className="text-sm font-medium text-slate-400">No bills yet</p>
+              <p className="text-xs text-slate-300 mt-1">Create your first bill to see it here</p>
+            </motion.div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-100">
+                  {['Bill #', 'Patient', 'Clinic', 'Date', 'Amount', 'Status', ''].map((h) => (
+                    <th
+                      key={h}
+                      className={`px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-left ${
+                        h === 'Clinic' ? 'hidden sm:table-cell' : h === 'Date' ? 'hidden md:table-cell' : h === 'Status' ? 'hidden sm:table-cell' : ''
+                      }`}
                     >
-                      <Eye size={15} />
-                    </button>
-                  </td>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {bills.map((bill, i) => (
+                  <motion.tr
+                    key={bill._id}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05, duration: 0.3 }}
+                    whileHover={{ backgroundColor: 'rgba(248,250,252,1)' }}
+                    className="cursor-default"
+                    onClick={() => navigate(`/bills/${bill._id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td className="px-5 py-3.5">
+                      <span className="text-sm font-mono font-bold text-blue-600">{bill.billNumber}</span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <p className="text-sm font-medium text-slate-800">
+                        {bill.billingType === 'corporate' ? (bill.companyName || 'Corporate') : (bill.patient?.name || '—')}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {bill.billingType === 'corporate'
+                          ? `${bill.patientCount || bill.patients?.length || 0} patients`
+                          : bill.patient?.phone}
+                      </p>
+                    </td>
+                    <td className="px-5 py-3.5 hidden sm:table-cell">
+                      <span className="text-sm text-slate-500">{bill.clinicId?.name || '—'}</span>
+                    </td>
+                    <td className="px-5 py-3.5 hidden md:table-cell">
+                      <span className="text-sm text-slate-400">{formatDate(bill.createdAt)}</span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="text-sm font-bold text-slate-800">{formatCurrency(bill.total)}</span>
+                    </td>
+                    <td className="px-5 py-3.5 hidden sm:table-cell">
+                      {bill.status === 'paid' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                          <CheckCircle size={10} />
+                          Paid
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-100">
+                          <Clock size={10} />
+                          Pending
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <motion.button
+                        onClick={(e) => { e.stopPropagation(); navigate(`/bills/${bill._id}`); }}
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                      >
+                        <Eye size={15} />
+                      </motion.button>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
