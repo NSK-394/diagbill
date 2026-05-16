@@ -41,7 +41,7 @@ export default function LoginPage() {
             <input
               {...register('email', { required: 'Email is required' })}
               type="text"
-              placeholder="admin@diagnostic.com"
+              placeholder="Enter your email"
               className="input-field pl-9"
             />
           </div>
@@ -91,12 +91,6 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <div className="mt-6 p-3 bg-blue-50 rounded-xl border border-blue-100">
-        <p className="text-xs text-blue-700 font-medium mb-1">Demo Credentials</p>
-        <p className="text-xs text-blue-600">Email: <span className="font-mono">admin@diagnostic.com</span></p>
-        <p className="text-xs text-blue-600">Password: <span className="font-mono">admin123</span></p>
-        <p className="text-xs text-blue-500 mt-1">Or use: <span className="font-mono">admin / admin123</span></p>
-      </div>
     </motion.div>
   );
 }
