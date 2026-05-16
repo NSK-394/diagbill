@@ -56,6 +56,7 @@ export default function BillDetailPage() {
   const clinicColor = clinic.color || '#2563EB';
   const discount = bill.discount || 0;
   const discountAmt = discount > 0 ? (bill.subtotal * discount) / 100 : 0;
+  const dateStr = formatDate(bill.createdAt);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
@@ -74,101 +75,113 @@ export default function BillDetailPage() {
         </div>
       </div>
 
-      {/* Invoice — styled to match the PDF exactly */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200"
       >
-        {/* ── Blue Header ── */}
-        <div className="px-8 py-6 flex items-start justify-between" style={{ backgroundColor: clinicColor }}>
+        {/* Colored top bar */}
+        <div style={{ backgroundColor: clinicColor, height: '8px' }} />
+
+        {/* ── Header ── */}
+        <div className="px-8 py-5 flex items-start justify-between border-b border-slate-200">
           <div className="flex-1 min-w-0 pr-6">
-            <h1 className="text-2xl font-bold text-white leading-tight">{clinic.name}</h1>
-            {clinic.address && (
-              <p className="text-white/80 text-sm mt-1.5">{clinic.address}</p>
-            )}
+            <h1 className="text-2xl font-bold text-slate-900 leading-tight">{clinic.name}</h1>
+            {clinic.address && <p className="text-slate-500 text-sm mt-1.5">{clinic.address}</p>}
             {(clinic.phone || clinic.gst) && (
-              <p className="text-white/75 text-sm mt-1">
-                {[clinic.phone && `Ph: ${clinic.phone}`, clinic.gst && `GST: ${clinic.gst}`]
-                  .filter(Boolean).join('   ')}
+              <p className="text-slate-400 text-sm mt-1">
+                {[clinic.phone && `Ph: ${clinic.phone}`, clinic.gst && `GST: ${clinic.gst}`].filter(Boolean).join('   ')}
               </p>
             )}
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-white font-bold text-sm tracking-widest">TAX INVOICE</p>
-            <p className="text-white font-mono text-base font-semibold mt-1">{bill.billNumber}</p>
-            <p className="text-white/80 text-sm mt-0.5">{formatDate(bill.createdAt)}</p>
-            {bill.status === 'paid' ? (
-              <span className="inline-flex items-center gap-1 mt-2 px-2.5 py-0.5 rounded-full bg-green-400/20 text-green-200 text-xs font-medium">
-                <CheckCircle size={11} /> PAID
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 mt-2 px-2.5 py-0.5 rounded-full bg-yellow-400/20 text-yellow-200 text-xs font-medium">
-                <Clock size={11} /> PENDING
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* ── Patient Details ── */}
-        <div className="px-8 py-5">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">PATIENT DETAILS</p>
-          <div className="border border-slate-200 bg-slate-50 rounded-lg px-5 py-4">
-            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-              <div className="flex gap-2">
-                <span className="font-bold text-slate-700 text-sm whitespace-nowrap">Name:</span>
-                <span className="text-slate-600 text-sm">{bill.patient?.name || '—'}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="font-bold text-slate-700 text-sm whitespace-nowrap">Phone:</span>
-                <span className="text-slate-600 text-sm">{bill.patient?.phone || '—'}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="font-bold text-slate-700 text-sm whitespace-nowrap">Age / Gender:</span>
-                <span className="text-slate-600 text-sm">{bill.patient?.age || '—'} yrs / {bill.patient?.gender || '—'}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="font-bold text-slate-700 text-sm whitespace-nowrap">Referred By:</span>
-                <span className="text-slate-600 text-sm">{bill.patient?.referredBy || 'Self'}</span>
-              </div>
+            <p className="font-bold text-sm" style={{ color: clinicColor }}>Bill of Supply / Tax Invoice</p>
+            <div className="flex items-center gap-2 justify-end mt-1">
+              {bill.status === 'paid' ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                  <CheckCircle size={11} /> PAID
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium">
+                  <Clock size={11} /> PENDING
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* ── Diagnostic Tests ── */}
+        {/* ── Patient + Bill Info ── */}
+        <div className="mx-8 my-5 border border-slate-200 rounded-lg overflow-hidden text-sm">
+          <div className="flex divide-x divide-slate-200 bg-slate-50">
+            {/* Left: patient info */}
+            <div className="flex-1 p-4 space-y-2.5">
+              {[
+                ['Name', bill.patient?.name || '—'],
+                ['Age / Gender', `${bill.patient?.age || '—'} Yrs / ${bill.patient?.gender || '—'}`],
+                ['Contact No', bill.patient?.phone || '—'],
+                ['Address', '—'],
+                ['UHID', '—'],
+                ['Home Collection', 'No'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex gap-2">
+                  <span className="font-bold text-slate-700 whitespace-nowrap w-28 shrink-0">{label}:</span>
+                  <span className="text-slate-600">{value}</span>
+                </div>
+              ))}
+            </div>
+            {/* Right: bill info */}
+            <div className="flex-1 p-4 space-y-2.5">
+              {[
+                ['Bill #', bill.billNumber],
+                ['Visit Date', dateStr],
+                ['Referred By', bill.patient?.referredBy || 'Self'],
+                ['Visit No', '1'],
+                ['Center', clinic.name || '—'],
+                ['Center Ph.', clinic.phone || '—'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex gap-2">
+                  <span className="font-bold text-slate-700 whitespace-nowrap w-28 shrink-0">{label}:</span>
+                  <span className="text-slate-600">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Barcode centered ── */}
+        <div className="flex justify-center py-4">
+          <BarcodeBlock value={bill.billNumber} height={55} width={2} fontSize={11} />
+        </div>
+
+        {/* ── Tests Table ── */}
         <div className="px-8 pb-5">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">DIAGNOSTIC TESTS</p>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr style={{ backgroundColor: clinicColor }}>
-                  {['#', 'Code', 'Test Name', 'Category', 'Price', 'Qty', 'Amount'].map((h, i) => (
-                    <th
-                      key={h}
-                      className={`py-2.5 px-3 text-white text-xs font-semibold whitespace-nowrap
-                        ${i === 0 ? 'text-center w-8' : ''}
-                        ${i === 4 || i === 6 ? 'text-right' : ''}
-                        ${i === 5 ? 'text-center w-12' : ''}
-                        ${i === 1 ? 'w-20' : ''}
-                        ${i === 3 ? 'hidden md:table-cell' : ''}
-                        ${i === 1 || i === 2 || i === 3 ? 'text-left' : ''}
-                      `}
-                    >
-                      {h}
-                    </th>
+                  {[
+                    { h: '#', cls: 'text-center w-8' },
+                    { h: 'Service Code', cls: 'text-left w-24' },
+                    { h: 'Service Name', cls: 'text-left' },
+                    { h: 'Reporting Date', cls: 'text-left w-32 hidden md:table-cell' },
+                    { h: 'SAC Code', cls: 'text-center w-20 hidden md:table-cell' },
+                    { h: 'Rate', cls: 'text-right w-24' },
+                    { h: 'Total', cls: 'text-right w-24' },
+                  ].map(({ h, cls }) => (
+                    <th key={h} className={`py-2.5 px-3 text-white text-xs font-semibold whitespace-nowrap ${cls}`}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {bill.tests?.map((test, idx) => (
                   <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}>
-                    <td className="py-3 px-3 text-slate-400 text-center">{idx + 1}</td>
-                    <td className="py-3 px-3 font-mono text-slate-600 whitespace-nowrap">{test.code}</td>
-                    <td className="py-3 px-3 font-medium text-slate-800">{test.name}</td>
-                    <td className="py-3 px-3 text-slate-500 hidden md:table-cell">{test.category}</td>
-                    <td className="py-3 px-3 text-right text-slate-600 whitespace-nowrap">{fmtRs(test.price)}</td>
-                    <td className="py-3 px-3 text-center text-slate-600">{test.qty}</td>
-                    <td className="py-3 px-3 text-right font-bold text-slate-800 whitespace-nowrap">{fmtRs(test.price * test.qty)}</td>
+                    <td className="py-2.5 px-3 text-slate-400 text-center">{idx + 1}</td>
+                    <td className="py-2.5 px-3 font-mono text-slate-600 whitespace-nowrap">{test.code}</td>
+                    <td className="py-2.5 px-3 font-medium text-slate-800">{test.name}</td>
+                    <td className="py-2.5 px-3 text-slate-500 hidden md:table-cell whitespace-nowrap">{dateStr}</td>
+                    <td className="py-2.5 px-3 text-slate-500 text-center hidden md:table-cell">999316</td>
+                    <td className="py-2.5 px-3 text-right text-slate-600 whitespace-nowrap">{fmtRs(test.price)}</td>
+                    <td className="py-2.5 px-3 text-right font-bold text-slate-800 whitespace-nowrap">{fmtRs(test.price * test.qty)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -176,43 +189,57 @@ export default function BillDetailPage() {
           </div>
         </div>
 
-        {/* ── Totals + Barcode ── */}
-        <div className="px-8 py-5 border-t border-slate-200 flex flex-col sm:flex-row items-end justify-between gap-6">
-          {/* Barcode left */}
-          <div>
-            <BarcodeBlock value={bill.billNumber} height={55} width={1.8} fontSize={11} />
-          </div>
-
-          {/* Totals right — light box + blue TOTAL row */}
-          <div style={{ minWidth: '240px' }}>
-            <div className="border border-slate-200 bg-slate-50 rounded-lg px-4 py-3 space-y-2">
-              <div className="flex justify-between text-sm text-slate-600">
-                <span>Subtotal</span>
-                <span className="font-medium">{fmtRs(bill.subtotal)}</span>
-              </div>
-              {discount > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>Discount ({discount}%)</span>
-                  <span className="font-medium">- {fmtRs(discountAmt)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-sm text-slate-600">
-                <span>GST @ 18%</span>
-                <span className="font-medium">{fmtRs(bill.gstAmount)}</span>
-              </div>
-            </div>
-            <div
-              className="flex justify-between font-bold text-white text-base px-4 py-3 mt-1.5 rounded-lg"
-              style={{ backgroundColor: clinicColor }}
-            >
-              <span>TOTAL</span>
-              <span>{fmtRs(bill.total)}</span>
-            </div>
+        {/* ── Bill Amount ── */}
+        <div className="px-8 flex justify-end text-sm text-slate-600">
+          <div className="flex gap-12">
+            <span>Bill Amount:</span>
+            <span className="font-bold text-slate-800">{fmtRs(bill.subtotal)}</span>
           </div>
         </div>
 
+        {/* ── Settlement Section ── */}
+        <div className="mx-8 mt-3 border border-slate-200 bg-slate-50 rounded-lg overflow-hidden text-sm">
+          <div className="grid grid-cols-4 border-b border-slate-200 px-4 py-2 font-bold text-slate-500 uppercase text-xs">
+            <span>Settlement</span>
+            <span>Receipt No</span>
+            <span>Mode</span>
+            <span className="text-right">Amount</span>
+          </div>
+          <div className="grid grid-cols-4 px-4 py-2.5 text-slate-700">
+            <span>Payment</span>
+            <span className="font-mono text-slate-600">{bill.billNumber}</span>
+            <span>Cash</span>
+            <span className="text-right font-bold">{fmtRs(bill.total)}</span>
+          </div>
+          {discount > 0 && (
+            <div className="px-4 pb-2 text-sm text-green-600">
+              Discount ({discount}%): - {fmtRs(discountAmt)}
+            </div>
+          )}
+          <div className="px-4 pb-2.5 text-sm text-slate-500">
+            GST @ 18%: {fmtRs(bill.gstAmount)}
+          </div>
+        </div>
+
+        {/* ── Net Bill + Total Paid ── */}
+        <div className="px-8 mt-3 space-y-1.5 text-sm text-slate-600">
+          <div className="flex justify-between">
+            <span>Net Bill Amount:</span>
+            <span className="font-bold text-slate-800">{fmtRs(bill.total)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Total Paid Amount:</span>
+            <span className="font-bold text-slate-800">{fmtRs(bill.total)}</span>
+          </div>
+        </div>
+
+        {/* ── Authorized Signature ── */}
+        <div className="px-8 mt-3 flex justify-end">
+          <span className="font-bold text-slate-600 text-sm">Authorized Signature: ___________</span>
+        </div>
+
         {/* ── Footer ── */}
-        <div className="px-8 py-4 border-t border-slate-200 text-center">
+        <div className="mx-8 mt-4 border-t border-slate-200 py-4 text-center">
           <p className="text-slate-500 text-sm italic">
             Thank you for choosing {clinic.name}. Get well soon!
           </p>
@@ -220,6 +247,9 @@ export default function BillDetailPage() {
             This is a computer generated invoice. Powered by DiagBill.
           </p>
         </div>
+
+        {/* Colored bottom bar */}
+        <div style={{ backgroundColor: clinicColor, height: '6px' }} />
       </motion.div>
     </div>
   );
