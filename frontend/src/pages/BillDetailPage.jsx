@@ -181,8 +181,8 @@ export default function BillDetailPage() {
         </div>
 
         {/* ── Barcode (left-aligned) ── */}
-        <div className="px-8 pb-3">
-          <BarcodeBlock value={bill.billNumber} height={40} width={1.6} fontSize={10} />
+        <div className="px-8 pb-3" style={{ display: 'inline-block' }}>
+          <BarcodeBlock value={bill.billNumber} height={30} width={1.2} fontSize={8} />
         </div>
 
         {/* ── Divider ── */}

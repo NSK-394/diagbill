@@ -168,12 +168,12 @@ export async function generatePDF(bill) {
     const safeVal = billNum.replace(/[^A-Z0-9\-\.\ \$\/\+\%]/gi, '').toUpperCase() || 'PREVIEW';
     const canvas = document.createElement('canvas');
     JsBarcode(canvas, safeVal, {
-      format: 'CODE128', width: 2, height: 36,
-      displayValue: true, fontSize: 8, margin: 3,
+      format: 'CODE128', width: 1.4, height: 28,
+      displayValue: true, fontSize: 7, margin: 2,
       background: '#ffffff', lineColor: '#0f172a',
     });
-    const bcW = 52;
-    const bcH = 14;
+    const bcW = 38;
+    const bcH = 10;
     doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, y, bcW, bcH);
     y += bcH + 3;
   } catch (_) {

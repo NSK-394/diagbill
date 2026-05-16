@@ -104,8 +104,8 @@ export default function InvoicePreview({ billNumber }) {
       </div>
 
       {/* Barcode — LEFT aligned */}
-      <div className="px-4 py-1.5">
-        <BarcodeBlock value={billNum} height={26} width={1.0} fontSize={7} />
+      <div className="px-4 py-1.5" style={{ display: 'inline-block' }}>
+        <BarcodeBlock value={billNum} height={20} width={0.8} fontSize={6} />
       </div>
 
       {/* Divider */}
